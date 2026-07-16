@@ -7,7 +7,6 @@
 <meta name="description" content="ระบบสารสนเทศกลางธนาคารหน่วยกิตจังหวัดเชียงใหม่ — ทะเบียนหลักสูตร Dashboard ผู้บริหาร และบริการค้นหาหลักสูตรสำหรับประชาชน โดยสำนักงานศึกษาธิการจังหวัดเชียงใหม่" />
 <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-
 <style>
   html,body{margin:0;padding:0}
   #loading{font-family:'Sarabun',sans-serif;display:grid;place-items:center;height:100vh;color:#5B2A86;gap:12px;text-align:center;padding:20px}
@@ -20,17 +19,10 @@
 <div id="root"><div id="loading"><div class="spin"></div><div>กำลังโหลดระบบธนาคารหน่วยกิต…</div></div></div>
 <div id="err"></div>
 <script>
-  // แสดง error บนจอแทนการค้าง เพื่อให้วินิจฉัยได้
-  function showErr(m){
-    var el = document.getElementById('err');
-    var ld = document.getElementById('loading');
-    if (ld) ld.style.display = 'none';
-    if (el){ el.style.display='block'; el.textContent = '⚠ เกิดข้อผิดพลาดในการโหลด:\n\n' + m + '\n\nกรุณาถ่ายภาพหน้าจอนี้ส่งให้ผู้ดูแลระบบ'; }
-  }
-  window.addEventListener('error', function(e){ showErr((e.message||'') + '\n' + (e.filename||'') + ':' + (e.lineno||'')); });
-  // ถ้าเกิน 15 วินาทียังไม่ขึ้น = มีปัญหา
+  function showErr(m){ var el=document.getElementById('err'),ld=document.getElementById('loading'); if(ld)ld.style.display='none'; if(el){el.style.display='block'; el.textContent='⚠ เกิดข้อผิดพลาดในการโหลด:\n\n'+m+'\n\nกรุณาถ่ายภาพหน้าจอนี้ส่งให้ผู้ดูแลระบบ';} }
+  window.addEventListener('error', function(e){ showErr((e.message||'')+'\n'+(e.filename||'')+':'+(e.lineno||'')); });
   window.__cbLoaded = false;
-  setTimeout(function(){ if(!window.__cbLoaded) showErr('โหลดไม่สำเร็จภายใน 15 วินาที — อาจเป็นเพราะเชื่อมต่ออินเทอร์เน็ตช้า หรือโหลดไลบรารีไม่สำเร็จ (React/Babel) ลองรีเฟรชหน้าอีกครั้ง'); }, 15000);
+  setTimeout(function(){ if(!window.__cbLoaded) showErr('โหลดไม่สำเร็จภายใน 15 วินาที — อาจเป็นเพราะเชื่อมต่ออินเทอร์เน็ตช้า ลองรีเฟรชหน้าอีกครั้ง'); }, 15000);
 </script>
 <script>
 window.storage = {
@@ -41,7 +33,6 @@ window.storage = {
 };
 </script>
 <script>
-/* @jsxRuntime classic */
 const {
   useState,
   useEffect,
@@ -771,12 +762,7 @@ function App() {
     (async () => {
       try {
         setLiveMsg("กำลังเชื่อมต่อฐานข้อมูล…");
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 12000);
-        const res = await fetch(API_URL + "?api=public", {
-          signal: ctrl.signal
-        });
-        clearTimeout(timer);
+        const res = await fetch(API_URL + "?api=public");
         const data = await res.json();
         setLive(data);
         setLiveMsg("");
@@ -972,11 +958,15 @@ function App() {
       marginTop: 16,
       flexWrap: "wrap"
     }
-  }, [["exec", "📊 Dashboard ผู้บริหาร"], ["public", "🔎 บริการประชาชน"], ["agency", session ? `🏫 ${session.org}` : "🏫 สำหรับหน่วยงาน"]].map(([k, t]) => /*#__PURE__*/React.createElement("button", {
+  }, [["exec", "📊 Dashboard ผู้บริหาร"], ["public", "🔎 บริการประชาชน"]].map(([k, t]) => /*#__PURE__*/React.createElement("button", {
     key: k,
     className: `tabbtn ${tab === k ? "active" : ""}`,
     onClick: () => setTab(k)
-  }, t))), /*#__PURE__*/React.createElement("div", {
+  }, t)), API_URL && /*#__PURE__*/React.createElement("button", {
+    className: "tabbtn",
+    onClick: () => window.open(API_URL, "_blank", "noopener"),
+    title: "เปิดระบบบันทึกข้อมูลสำหรับหน่วยงาน (หน้าต่างใหม่)"
+  }, "🏫 สำหรับหน่วยงาน ↗")), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 4,
       background: "linear-gradient(90deg,var(--gold),transparent)",
@@ -3983,7 +3973,7 @@ function AdminWs({
     }
   }, "ยินยอมให้ติดต่อ: ", n.contact)))));
 }
-ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 window.__cbLoaded = true;
 </script>
 </body>
