@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ระบบธนาคารหน่วยกิตจังหวัดเชียงใหม่ | Chiang Mai Credit Bank</title>
+<meta name="description" content="ระบบสารสนเทศกลางธนาคารหน่วยกิตจังหวัดเชียงใหม่ — ทะเบียนหลักสูตร Dashboard ผู้บริหาร และบริการค้นหาหลักสูตรสำหรับประชาชน โดยสำนักงานศึกษาธิการจังหวัดเชียงใหม่" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;padding:0}
+  #loading{font-family:'Sarabun',sans-serif;display:grid;place-items:center;height:100vh;color:#5B2A86;gap:12px}
+  .spin{width:34px;height:34px;border:4px solid #E4DCEF;border-top-color:#5B2A86;border-radius:50%;animation:s .8s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root"><div id="loading"><div class="spin"></div><div>กำลังโหลดระบบธนาคารหน่วยกิต…</div></div></div>
+<script>
+window.storage = {
+  async get(key)          { const v = localStorage.getItem(key); if (v === null) throw new Error('not found'); return { key, value: v }; },
+  async set(key, value)   { localStorage.setItem(key, value); return { key, value }; },
+  async delete(key)       { localStorage.removeItem(key); return { key, deleted: true }; },
+  async list(prefix = '') { const keys = Object.keys(localStorage).filter(k => k.startsWith(prefix)); return { keys, prefix }; },
+};
+</script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const LOGO = "data:image/png;base64,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";
+
+
+/* ============================================================
+   ระบบธนาคารหน่วยกิตจังหวัดเชียงใหม่ (v2)
+   ── ระยะที่ 1: ทะเบียนหลักสูตร + Dashboard ผู้บริหาร + Export
+   ── ระยะที่ 2: หน้าบริการประชาชน (ค้นหา/วางแผน/ปรึกษา/FAQ)
+   ── เตรียมอนาคต: ความต้องการผู้เรียน + กำลังแรงงาน (Demand–Supply)
+   * ตัวเลขผู้เรียนในข้อมูลตั้งต้นเป็น "ค่าตัวอย่าง" ให้หน่วยงานแก้ไขจริง
+============================================================ */
+
+const MODELS = [
+  { id: 1, short: "เทียบโอนระดับเดียวกัน", name: "การเทียบโอนผลการเรียนระหว่างหลักสูตรระดับเดียวกัน", color: "#5B2A86", desc: "เช่น ขั้นพื้นฐาน ↔ อาชีวศึกษา ทำได้ทันทีตามระเบียบสถานศึกษาต้นสังกัด", kpi: "จำนวนหลักสูตร / สถานศึกษา / ผู้เทียบโอนสำเร็จ" },
+  { id: 2, short: "ไม่มีชั้นเรียน 100%", name: "การเก็บสะสมหน่วยกิตแบบไม่มีชั้นเรียน 100%", color: "#0E7C7B", desc: "เรียนสะสมเป็นรายวิชา/รายสมรรถนะ โดยไม่ต้องเรียนเต็มเวลา", kpi: "รายวิชาเปิดให้สะสม / ผู้เรียนอิสระ" },
+  { id: 3, short: "ต่อเนื่องเชื่อมโยง", name: "การเก็บสะสมหน่วยกิตการศึกษาในระบบ", color: "#2E7D5B", desc: "หลักสูตรต่อเนื่องเชื่อมโยงสู่ระดับที่สูงกว่า เช่น ม.ต้น → อาชีวศึกษา", kpi: "หลักสูตรต่อเนื่อง / โรงเรียนเครือข่าย / ผู้เรียน" },
+  { id: 4, short: "Pre-Degree คู่ขนาน", name: "การเก็บสะสมหน่วยกิตคู่ขนาน (Pre-Degree)", color: "#C99A2E", desc: "เรียนเก็บหน่วยกิตล่วงหน้าระดับที่สูงกว่า เช่น ปวส. → ปริญญาตรี", kpi: "หลักสูตร Pre-Degree / ผู้เรียนล่วงหน้า" },
+  { id: 5, short: "แปลงประสบการณ์อาชีพ", name: "การแปลงประสบการณ์อาชีพเป็นสมรรถนะและหน่วยกิต", color: "#A23E6C", desc: "นำความรู้ ทักษะ ประสบการณ์ทำงานมาเทียบเป็นหน่วยกิตตาม NQF", kpi: "คำขอเทียบประสบการณ์ / ผ่านการประเมิน" },
+];
+
+const STATUSES = ["ร่าง", "รอรับรอง", "เปิดใช้จริง", "มีผู้เรียนแล้ว", "ปิดปรับปรุง"];
+const ACTIVE = ["เปิดใช้จริง", "มีผู้เรียนแล้ว"];
+const STATUS_COLOR = { "ร่าง": "#8a8296", "รอรับรอง": "#C99A2E", "เปิดใช้จริง": "#5B2A86", "มีผู้เรียนแล้ว": "#2E7D5B", "ปิดปรับปรุง": "#A23E6C", "ไม่ระบุ": "#8a8296" };
+const AFFILS = ["สพฐ.", "สอศ.", "สกร.", "สช.", "อุดมศึกษา", "หน่วยงานภายนอก"];
+const AFFIL_COLOR = { "สพฐ.": "#5B2A86", "สอศ.": "#2E7D5B", "สกร.": "#A23E6C", "สช.": "#C99A2E", "อุดมศึกษา": "#0E7C7B", "หน่วยงานภายนอก": "#8a8296" };
+const OCC = ["ช่างอุตสาหกรรม", "เกษตรกรรม", "ดิจิทัล/ไอที", "โรงแรม/ท่องเที่ยว", "อาหาร/คหกรรม", "ธุรกิจ/บัญชี", "พลังงาน", "สังคม/พลเมือง", "อื่น ๆ"];
+const DISTRICTS = ["เมืองเชียงใหม่", "สารภี", "จอมทอง", "แม่ริม", "สันทราย", "สันกำแพง", "แม่แตง", "ดอยสะเก็ด", "แม่ออน", "ฮอด", "อมก๋อย", "เชียงดาว", "เวียงแหง", "พร้าว", "สันป่าตอง", "แม่แจ่ม", "ดอยเต่า", "ฝาง", "สะเมิง", "กัลยาณิวัฒนา", "อื่น ๆ"];
+const NQF_LEVELS = ["ระดับ 2", "ระดับ 3", "ระดับ 4", "ระดับ 5", "ระดับ 6", "หลายระดับ"];
+
+/* ── สถานศึกษาที่ได้รับการรับรองขึ้นทะเบียนธนาคารหน่วยกิตอย่างเป็นทางการ (ปี 2569) ── */
+const REGISTERED = [
+  { name: "วิทยาลัยเทคนิคเชียงใหม่", type: "อาชีวศึกษา (สอศ.)", district: "เมืองเชียงใหม่", nMajor: 7, majors: ["ช่างกลโรงงาน (ปวช.)", "ช่างยนต์ (ปวช.)", "ช่างเชื่อมโลหะ (ปวช.)", "เทคโนโลยีสารสนเทศ (ปวช.)", "ไฟฟ้า (ปวส.)", "เทคโนโลยีอิเล็กทรอนิกส์ (ปวส.)", "ช่างก่อสร้าง (ปวส.)"] },
+  { name: "วิทยาลัยการอาชีพฝาง", type: "อาชีวศึกษา (สอศ.)", district: "ฝาง", nMajor: 12, majors: ["ช่างยนต์ (ปวช.)", "ช่างไฟฟ้า (ปวช.)", "อิเล็กทรอนิกส์ (ปวช.)", "ช่างเชื่อมโลหะ (ปวช.)", "ตัวถังและสีรถยนต์ (ปวช.)", "การบัญชี (ปวช.)", "การตลาด (ปวช.)", "ธุรกิจค้าปลีก (ปวช.)", "เทคโนโลยีธุรกิจดิจิทัล (ปวช.)", "การโรงแรม (ปวช.)", "เทคนิคเครื่องกล (ปวส.)", "ไฟฟ้า (ปวส.)"] },
+  { name: "วิทยาลัยเทคนิคสันกำแพง", type: "อาชีวศึกษา (สอศ.)", district: "สันกำแพง", nMajor: 8, majors: ["ช่างยนต์ (ปวช.)", "ช่างไฟฟ้า (ปวช.)", "ช่างก่อสร้าง (ปวช.)", "เทคโนโลยีธุรกิจดิจิทัล (ปวช.)", "เทคนิคเครื่องกล (ปวส.)", "ไฟฟ้า (ปวส.)", "ช่างก่อสร้าง (ปวส.)", "เทคโนโลยีธุรกิจดิจิทัล (ปวส.)"] },
+  { name: "วิทยาลัยเทคนิคสารภี", type: "อาชีวศึกษา (สอศ.)", district: "สารภี", nMajor: 13, majors: ["ช่างยนต์ (ปวช.)", "ช่างไฟฟ้า (ปวช.)", "อิเล็กทรอนิกส์ (ปวช.)", "ช่างเชื่อมโลหะ (ปวช.)", "เทคโนโลยีธุรกิจดิจิทัล (ปวช.)", "การบัญชี (ปวช.)", "การโรงแรม (ปวช.)", "การโรงแรม (ปวส.)", "การบัญชี (ปวส.)", "เทคนิคเครื่องกล (ปวส.)", "เทคโนโลยีอิเล็กทรอนิกส์ (ปวส.)", "เทคนิคโลหะ (ปวส.)", "ไฟฟ้า (ปวส.)"] },
+  { name: "มหาวิทยาลัยเชียงใหม่", type: "อุดมศึกษา (อว.)", district: "เมืองเชียงใหม่", link: "https://www.lifelong.cmu.ac.th/career-skills", majors: [] },
+  { name: "มหาวิทยาลัยราชภัฏเชียงใหม่", type: "อุดมศึกษา (อว.)", district: "เมืองเชียงใหม่", majors: [] },
+  { name: "มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา", type: "อุดมศึกษา (อว.)", district: "เมืองเชียงใหม่", majors: [] },
+  { name: "มหาวิทยาลัยแม่โจ้", type: "อุดมศึกษา (อว.)", district: "สันทราย", majors: [] },
+];
+const REG_ALIASES = ["วิทยาลัยเทคนิคเชียงใหม่", "วิทยาลัยการอาชีพฝาง", "วิทยาลัยเทคนิคสันกำแพง", "วิทยาลัยเทคนิคสารภี", "มหาวิทยาลัยเชียงใหม่", "มช.", "มหาวิทยาลัยราชภัฏเชียงใหม่", "มรภ.เชียงใหม่", "มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา", "มทร.ล้านนา", "มหาวิทยาลัยแม่โจ้", "ม.แม่โจ้"];
+const isRegProvider = (provider = "") => REG_ALIASES.some((n) => provider.includes(n));
+const TARGETS = ["ม.ต้น", "ม.ปลาย", "ปวช.", "ปวส.", "ประชาชนทั่วไป"];
+const YEARS = ["2566", "2567", "2568"];
+
+/* ── ข้อมูลตั้งต้น: เฉพาะข้อมูลจริงจากเอกสารอ้างอิง 6 แหล่ง ──
+   แหล่ง: (ก) ตารางข้อมูลสถานศึกษา ศธจ. [ซ้ำ 2 ไฟล์: PDF + แบบสำรวจ] (ข) รายงานภาคีเครือข่าย
+   (ค) เอกสารขับเคลื่อน 26 มิ.ย. 69 (ง) สรุปข้อมูล ศน.นิด (จ) Excel LEAP มช. 21 ต.ค. 67
+   learners: null = ไม่มีข้อมูลในเอกสาร ── */
+const UPDATED_AT = "14 ก.ค. 2569"; // ← แก้วันที่อัปเดตข้อมูลได้ที่บรรทัดนี้จุดเดียว
+
+/* ═══ เชื่อมต่อฐานข้อมูลจริง (Google Apps Script) ═══
+   เมื่อ Deploy Apps Script เสร็จแล้ว วาง Web app URL ตรงนี้
+   ระบบจะดึงข้อมูลสด (หลักสูตรที่อนุมัติแล้ว) มาแสดงบน Dashboard อัตโนมัติ
+   ── ปล่อยว่าง = ใช้ข้อมูลตั้งต้นในไฟล์ (SEED) ──
+   ตัวอย่าง: const API_URL = "https://script.google.com/macros/s/AKfycbx.../exec"; */
+const API_URL = "https://script.google.com/macros/s/AKfycbzXG06J4oRMDUkCduuLlow4FMFoT9_N8x1Mm7awtMXBUfgEFKmZKwH6mNSwylGZOPGV/exec";
+const L = (ap, en, cr, tr) => ({ applied: ap, enrolled: en, credited: cr, transferred: tr });
+const SEED = [
+  // ═══ ตารางข้อมูลสถานศึกษา ศธจ.เชียงใหม่ (ไม่ระบุจำนวนผู้เรียน/ปี) ═══
+  { id: "s01", code: "CB-CMI-001", name: "หลักสูตรระยะสั้นช่างอุตสาหกรรม", provider: "วิทยาลัยเทคนิคสารภี", affil: "สอศ.", district: "สารภี", occ: "ช่างอุตสาหกรรม", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น", "ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "ช่างยนต์ · ช่างไฟฟ้า · ช่างอิเล็กทรอนิกส์ · การบัญชี · การโรงแรม · เทคโนโลยีธุรกิจดิจิทัล (NQF ระดับ 2 ทักษะวิชาชีพเบื้องต้น ม.ต้น → ปวช.1)", partners: "รร.วัดเวฬุวัน, รร.บ้านสันป่าสัก, รร.บ้านปากเหมือง, รร.วัดศรีคำชมภู", src: "ตาราง ศธจ." },
+  { id: "s02", code: "CB-CMI-002", name: "หลักสูตรระยะสั้น + ต่อเนื่องเชื่อมโยง / เรียนล่วงหน้า", provider: "วิทยาลัยการอาชีพจอมทอง", affil: "สอศ.", district: "จอมทอง", occ: "ช่างอุตสาหกรรม", model: 3, nqf: "หลายระดับ", targets: ["ม.ต้น", "ปวช.", "ปวส.", "ประชาชนทั่วไป"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "หลักสูตรระยะสั้นและรายวิชาปรับพื้นฐานวิชาชีพ เชื่อมโยง NQF ระดับ 2–4 (ม.ต้น → ปวช. → ปวส.)", partners: "รร.อมก๋อยวิทยาคม, รร.ราชประชานุเคราะห์ 31, รร.ฮอดพิทยาคม", src: "ตาราง ศธจ." },
+  { id: "s03", code: "CB-CMI-003", name: "โครงการเรียนร่วมหลักสูตรอาชีวศึกษาและ ม.ปลาย (ทวิศึกษา)", provider: "วิทยาลัยอาชีวศึกษาเชียงใหม่", affil: "สอศ.", district: "เมืองเชียงใหม่", occ: "โรงแรม/ท่องเที่ยว", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "ม.4 สาขาการท่องเที่ยว · ม.5–ม.6 สาขาคหกรรมศาสตร์ — นำไปใช้เทียบโอนในระดับเดียวกัน", partners: "รร.เวียงแหงวิทยาคม", src: "ตาราง ศธจ." },
+  { id: "s04", code: "CB-CMI-004", name: "หลักสูตรต่อเนื่องเชื่อมโยง ม.ต้น สายอาชีพ", provider: "วิทยาลัยเทคโนโลยีพายัพและบริหารธุรกิจ", affil: "สช.", district: "สันทราย", occ: "ดิจิทัล/ไอที", model: 3, nqf: "ระดับ 3", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "คอมพิวเตอร์สารสนเทศเพื่องานอาชีพ · การขายเบื้องต้น · งานไฟฟ้าและอิเล็กทรอนิกส์เบื้องต้น — รายวิชาตาม ศน.นิด: งานเครื่องมือกลเบื้องต้น (20100-1006), งานไฟฟ้าและอิเล็กทรอนิกส์ (20100-1005), การใช้เทคโนโลยีดิจิทัลเพื่ออาชีพ (20001-1005), การขายและการตลาดเบื้องต้น (20200-1002), ศิลปะการให้บริการในอุตสาหกรรมท่องเที่ยว (20700-1003)", partners: "รร.บ้านเมืองกึ้ด, รร.บ้านแม่โจ้, รร.บ้านร่มหลวง, รร.วัดแม่แก้ดน้อย, รร.บ้านสันคะยอม, รร.สันทรายหลวง, รร.บ้านศาลา, รร.ป่าแป๋วิทยา", src: "ตาราง ศธจ." },
+  { id: "s05", code: "CB-CMI-005", name: "หลักสูตรระยะสั้น ม.ปลาย (ช่างยนต์/ไฟฟ้า/ก่อสร้าง/เชื่อม)", provider: "วิทยาลัยเทคนิคเชียงใหม่", affil: "สอศ.", district: "เมืองเชียงใหม่", occ: "ช่างอุตสาหกรรม", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "ช่างยนต์ · ช่างไฟฟ้า · ช่างก่อสร้าง · ช่างเชื่อม (NQF ระดับ 3 ทักษะวิชาชีพเฉพาะสาขา)", partners: "รร.เวียงแหงวิทยาคม, รร.พร้าววิทยาคม, รร.ฮอดวิทยาคม, รร.ศรีโสดา, รร.หอพระ", src: "ตาราง ศธจ." },
+  { id: "s06", code: "CB-CMI-006", name: "หลักสูตรระยะสั้นเกษตร 7 หลักสูตร", provider: "โรงเรียนทาเหนือวิทยา", affil: "สพฐ.", district: "แม่ออน", occ: "เกษตรกรรม", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "1.ผลิตกล้าผัก 2.ปลูกพืชเมืองหนาว 3.ผักไฮโดรบอกซ์ 4.ผลิตเห็ดเศรษฐกิจ 5.ผลิตไม้กระถางเพื่อการค้า 6.จัดสวนเบื้องต้น 7.สารชีวภาพทางการเกษตร", partners: "วิทยาลัยเกษตรลำพูน", src: "ตาราง ศธจ." },
+  { id: "s07", code: "CB-CMI-007", name: "หลักสูตรทักษะอาชีพ", provider: "โรงเรียนบ้านห้วยจะค่าน ตชด.อนุสรณ์", affil: "สพฐ.", district: "เชียงดาว", occ: "อื่น ๆ", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "สะสมหน่วยกิตในระบบธนาคารหน่วยกิต + เทียบโอนผลการเรียนรู้เมื่อเรียนต่อระดับอาชีวศึกษา", partners: "-", src: "ตาราง ศธจ." },
+  { id: "s08", code: "CB-CMI-008", name: "หลักสูตรจัดการศึกษาโดยชุมชนมีส่วนร่วม (บูรณาการเรียนรู้)", provider: "รร.สันกำแพงคันธาอนุสรณ์", affil: "สพฐ.", district: "สันกำแพง", occ: "สังคม/พลเมือง", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "บูรณาการเรียนรู้ร่วมกับชุมชน", partners: "-", src: "ตาราง ศธจ." },
+  { id: "s09", code: "CB-CMI-009", name: "หลักสูตรฐานสมรรถนะ", provider: "โรงเรียนบ้านแปะสามัคคี", affil: "สพฐ.", district: "จอมทอง", occ: "อื่น ๆ", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "หลักสูตรฐานสมรรถนะ", partners: "-", src: "ตาราง ศธจ." },
+  { id: "s10", code: "CB-CMI-010", name: "หลักสูตรอาชีพและผู้ประกอบการ", provider: "โรงเรียนแม่คือวิทยา", affil: "สพฐ.", district: "ดอยสะเก็ด", occ: "ธุรกิจ/บัญชี", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "หลักสูตรอาชีพ ร่วมกับสถาบันอาชีวศึกษา", partners: "วิทยาลัยสารพัดช่างเชียงใหม่", src: "ตาราง ศธจ." },
+  { id: "s11", code: "CB-CMI-011", name: "ดิจิทัลกราฟิก (กลุ่มศิลปกรรม)", provider: "โรงเรียนวัดดอนจั่น", affil: "สพฐ.", district: "เมืองเชียงใหม่", occ: "ดิจิทัล/ไอที", model: 3, nqf: "ระดับ 2", targets: ["ม.ต้น"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "ไม่ระบุ", learners: null, fields: "ดิจิทัลกราฟิก · กลุ่มการงานอาชีพ · กลุ่มวิทยาศาสตร์และเทคโนโลยี", partners: "-", src: "ตาราง ศธจ." },
+  { id: "s12", code: "CB-CMI-012", name: "Pre-Degree พลังงานทดแทน", provider: "วิทยาลัยพลังงานทดแทน มหาวิทยาลัยแม่โจ้", affil: "อุดมศึกษา", district: "สันทราย", occ: "พลังงาน", model: 4, nqf: "ระดับ 6", targets: ["ปวส."], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "2567", learners: null, fields: "ออกแบบ ติดตั้งและบำรุงรักษาระบบเซลล์แสงอาทิตย์ (30104-2063, ภาคเรียน 1, ปวส.1 EL/EP) · เขียนแบบเครื่องกลด้วยคอมพิวเตอร์ (30102-2002, ภาคเรียน 2, AU) · อินเทอร์เน็ตของสรรพสิ่ง (30105-2012, ภาคเรียน 2, EL/EP)", partners: "วิทยาลัยเทคโนโลยีพายัพและบริหารธุรกิจ", src: "ตาราง ศธจ. + ศน.นิด", dup: "ปรากฏใน 2 แหล่ง ข้อมูลสอดคล้องกัน — รวมเป็นรายการเดียว (ดูรายการตรวจสอบ ข้อ 6)" },
+  { id: "s13", code: "CB-CMI-013", name: "เทียบระดับการศึกษา (สอบเทียบ + ประเมิน 2 มิติ)", provider: "สกร.จังหวัดเชียงใหม่", affil: "สกร.", district: "เมืองเชียงใหม่", occ: "อื่น ๆ", model: 5, nqf: "หลายระดับ", targets: ["ประชาชนทั่วไป"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2568", learners: null, fields: "สอบเทียบวัดระดับความรู้ขั้นพื้นฐาน (ประถม/ม.ต้น/ม.ปลาย) + ประเมินเทียบระดับมิติความรู้ความคิด — จำนวนผู้เข้าประเมิน: ยังไม่มีการแจ้งอย่างเป็นทางการ", partners: "-", src: "รายงานภาคีเครือข่าย (สกร.)" },
+
+  // ═══ ทวิศึกษา ปีการศึกษา 2567 (งบ สพฐ.) — จำนวนผู้เรียน ปวช.1 จริงจาก ศน.นิด ═══
+  { id: "t01", code: "TW-2567-01", name: "ทวิศึกษา: คอมพิวเตอร์ธุรกิจ", provider: "รร.ดอยเต่าวิทยาคม × วิทยาลัยเทคนิคสารภี", affil: "สพฐ.", district: "ดอยเต่า", occ: "ดิจิทัล/ไอที", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาคอมพิวเตอร์ธุรกิจ (ระดับ ปวช.1)", partners: "วิทยาลัยเทคนิคสารภี", src: "ศน.นิด (ทวิศึกษา 2567)" },
+  { id: "t02", code: "TW-2567-02", name: "ทวิศึกษา: การบัญชี", provider: "รร.พร้าววิทยาคม × วิทยาลัยอาชีวศึกษาเชียงใหม่", affil: "สพฐ.", district: "พร้าว", occ: "ธุรกิจ/บัญชี", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาการบัญชี (เปิดสอน) · สาขาการโรงแรม/การท่องเที่ยว (ไม่มีผู้เรียนในปีนี้)", partners: "วิทยาลัยอาชีวศึกษาเชียงใหม่", src: "ศน.นิด (ทวิศึกษา 2567)" },
+  { id: "t03", code: "TW-2567-03", name: "ทวิศึกษา / คู่พัฒนา: ช่างก่อสร้าง", provider: "รร.มัธยมกัลยาณิวัฒนาเฉลิมพระเกียรติ × วิทยาลัยเทคนิคเชียงใหม่", affil: "สพฐ.", district: "กัลยาณิวัฒนา", occ: "ช่างอุตสาหกรรม", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "15 หน่วยกิต", status: "มีผู้เรียนแล้ว", year: "2568", learners: null, fields: "วิชาช่างก่อสร้าง 15 หน่วยกิต — คู่พัฒนาตามเอกสารขับเคลื่อน 26 มิ.ย. 69 (MOU 6 ส.ค. 68)", partners: "วิทยาลัยเทคนิคเชียงใหม่", src: "เอกสาร 26 มิ.ย. 69" },
+  { id: "t04", code: "TW-2567-04", name: "ทวิศึกษา: อาหารและโภชนาการ + ช่างยนต์", provider: "รร.อมก๋อยวิทยาคม × วอศ.เชียงใหม่ + วก.จอมทอง", affil: "สพฐ.", district: "อมก๋อย", occ: "อาหาร/คหกรรม", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาอาหารและโภชนาการ + สาขาช่างยนต์ (เปิดสอน) · สาขาคหกรรมศาสตร์/ทัศนศิลป์ (ไม่มีผู้เรียนในปีนี้)", partners: "วิทยาลัยอาชีวศึกษาเชียงใหม่, วิทยาลัยการอาชีพจอมทอง", src: "ศน.นิด (ทวิศึกษา 2567)" },
+  { id: "t05", code: "TW-2567-05", name: "ทวิศึกษา: คอมพิวเตอร์ธุรกิจ", provider: "รร.ฮอดพิทยาคม × วิทยาลัยการอาชีพจอมทอง", affil: "สพฐ.", district: "ฮอด", occ: "ดิจิทัล/ไอที", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาคอมพิวเตอร์ธุรกิจ (เปิดสอน) · สาขาช่างยนต์/ช่างเชื่อม/การบัญชี (ไม่มีผู้เรียนในปีนี้)", partners: "วิทยาลัยการอาชีพจอมทอง", src: "ศน.นิด (ทวิศึกษา 2567)" },
+  { id: "t06", code: "TW-2567-06", name: "ทวิศึกษา: ช่างยนต์", provider: "รร.สะเมิงพิทยาคม × วิทยาลัยเทคนิคสารภี", affil: "สพฐ.", district: "สะเมิง", occ: "ช่างอุตสาหกรรม", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาช่างยนต์ (ระดับ ปวช.1)", partners: "วิทยาลัยเทคนิคสารภี", src: "ศน.นิด (ทวิศึกษา 2567)" },
+  { id: "t07", code: "TW-2567-07", name: "ทวิศึกษา: ช่างไฟฟ้ากำลัง + คหกรรมศาสตร์", provider: "รร.เวียงแหงวิทยาคม × วท.เชียงใหม่ + วอศ.เชียงใหม่", affil: "สพฐ.", district: "เวียงแหง", occ: "ช่างอุตสาหกรรม", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาช่างไฟฟ้ากำลัง (วท.เชียงใหม่) + สาขาคหกรรมศาสตร์ (วอศ.เชียงใหม่)", partners: "วิทยาลัยเทคนิคเชียงใหม่, วิทยาลัยอาชีวศึกษาเชียงใหม่", src: "ศน.นิด (ทวิศึกษา 2567)", dup: "รร.เวียงแหงวิทยาคมปรากฏในหลายโครงการ (ทวิศึกษา / ม.แม่โจ้ / มทร.ล้านนา / LEAP) — ยังไม่มีการแจ้งจำนวนผู้เรียนอย่างเป็นทางการ จึงแสดง N/A และต้องระวังไม่นับผู้เรียนซ้ำเมื่อได้ตัวเลขจริง" },
+
+  // ═══ รายวิชาสะสมหน่วยกิต Credit Bank ปีการศึกษา 2567 (ศน.นิด) ═══
+  { id: "c01", code: "CB-2567-01", name: "รายวิชาสะสมหน่วยกิต: การโรงแรม / การท่องเที่ยว", provider: "รร.สันทรายวิทยาคม × วิทยาลัยอาชีวศึกษาเชียงใหม่", affil: "สพฐ.", district: "สันทราย", occ: "โรงแรม/ท่องเที่ยว", model: 1, nqf: "ระดับ 3", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "มีผู้เรียนแล้ว", year: "2567", learners: null, fields: "สาขาการโรงแรม · สาขาการท่องเที่ยว (ระดับ ปวช.1)", partners: "วิทยาลัยอาชีวศึกษาเชียงใหม่", src: "ศน.นิด (Credit Bank 2567)" },
+  { id: "c02", code: "CB-2567-02", name: "รายวิชาสะสมหน่วยกิต: คณะพัฒนาการท่องเที่ยว", provider: "มหาวิทยาลัยแม่โจ้", affil: "อุดมศึกษา", district: "สันทราย", occ: "โรงแรม/ท่องเที่ยว", model: 4, nqf: "ระดับ 6", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "2567", learners: null, fields: "คณะพัฒนาการท่องเที่ยว — โรงเรียนเครือข่าย 4 แห่ง (จำนวนผู้เรียน: ไม่มีข้อมูล)", partners: "รร.สารภีพิทยาคม, รร.อรุโณทัยวิทยาคม, รร.เวียงแหงวิทยาคม, รร.สองแคววิทยาคม", src: "ศน.นิด (Credit Bank 2567)" },
+  { id: "c03", code: "CB-2567-03", name: "รายวิชาสะสมหน่วยกิต: ธุรกิจการบิน", provider: "วิทยาลัยนานาชาติ มหาวิทยาลัยราชภัฏเชียงใหม่", affil: "อุดมศึกษา", district: "เมืองเชียงใหม่", occ: "โรงแรม/ท่องเที่ยว", model: 4, nqf: "ระดับ 6", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "2567", learners: null, fields: "สาขาธุรกิจการบิน — โรงเรียนเครือข่าย 5 แห่ง (จำนวนผู้เรียน: ไม่มีข้อมูล)", partners: "รร.สารภีพิทยาคม, รร.วัฒโนทัยพายัพ, รร.อรุโณทัยวิทยาคม, รร.นวมินทราชูทิศ พายัพ, รร.สันป่าตองวิทยาคม", src: "ศน.นิด (Credit Bank 2567)" },
+  { id: "c04", code: "CB-2567-04", name: "รายวิชาสะสมหน่วยกิต: คณะบริหารธุรกิจและศิลปศาสตร์", provider: "มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา", affil: "อุดมศึกษา", district: "เมืองเชียงใหม่", occ: "ธุรกิจ/บัญชี", model: 4, nqf: "ระดับ 6", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "2567", learners: null, fields: "คณะบริหารธุรกิจและศิลปศาสตร์ — โรงเรียนเครือข่าย 5 แห่ง (จำนวนผู้เรียน: ไม่มีข้อมูล)", partners: "รร.สารภีพิทยาคม, รร.วัฒโนทัยพายัพ, รร.สองแคววิทยาคม, รร.เวียงแหงวิทยาคม, รร.สันป่าตองวิทยาคม", src: "ศน.นิด (Credit Bank 2567)" },
+  { id: "c05", code: "CB-2567-05", name: "หลักสูตรระยะสั้น Platform LEAP Academy × โรงเรียนเครือข่าย", provider: "วิทยาลัยการศึกษาตลอดชีวิต มหาวิทยาลัยเชียงใหม่", affil: "อุดมศึกษา", district: "เมืองเชียงใหม่", occ: "อื่น ๆ", model: 2, nqf: "หลายระดับ", targets: ["ม.ปลาย"], hours: "ไม่มีข้อมูล", status: "ไม่ระบุ", year: "2567", learners: null, fields: "หลักสูตรระยะสั้นผ่านแพลตฟอร์ม LEAP Academy (Re-Skill/Up-Skill/New-Skill) — โรงเรียนเครือข่าย 10 แห่ง ตามรายงาน สพม.เชียงใหม่ · รายวิชาผู้ประกอบการนวัตกรชุมชน", partners: "โรงเรียนเครือข่าย 10 แห่ง (ตามรายงาน สพม.เชียงใหม่) ร่วมกับ สสวท.", src: "รายงาน สพม.เชียงใหม่" },
+  { id: "c06", code: "CB-CMU-LLL", name: "หลักสูตรอบรมระยะสั้นสะสมหน่วยกิต 278 หลักสูตร", provider: "วิทยาลัยการศึกษาตลอดชีวิต มหาวิทยาลัยเชียงใหม่", affil: "อุดมศึกษา", district: "เมืองเชียงใหม่", occ: "อื่น ๆ", model: 2, nqf: "ระดับ 6", targets: ["ประชาชนทั่วไป", "ม.ปลาย"], hours: "1–26 หน่วยกิต / 15–3,644 ชม.", status: "ไม่ระบุ", year: "2567", learners: null, fields: "278 หลักสูตร จาก 15 คณะ/วิทยาลัย (ข้อมูล ณ 21 ต.ค. 67) — แพทยศาสตร์ 49 · สาธารณสุขศาสตร์ 36 · วิศวกรรมศาสตร์ 35 · รัฐศาสตร์ฯ 34 · วนช.นวัตกรรมดิจิทัล 29 · เภสัชศาสตร์ 18 · เทคนิคการแพทย์ 17 · สังคมศาสตร์ 15 · วิทยาศาสตร์ 11 · อื่น ๆ 34 | กลุ่มหลักสูตร: อื่นๆ 136 · ภาษาและวัฒนธรรม 73 · ดิจิทัลและไอที 44 · พาณิชยกรรมฯ 13 · คหกรรม 6 · อุตสาหกรรม 5 · ศิลปกรรม 1", partners: "-", src: "Excel LEAP มช. (21 ต.ค. 67)", applyUrl: "https://www.lifelong.cmu.ac.th/career-skills" },
+];
+const SEED_LABOR = []; // ไม่มีข้อมูลความต้องการกำลังคนในเอกสารอ้างอิง — รอสถานประกอบการกรอกผ่านระบบ
+
+const TREND = null; // ไม่มีข้อมูลแนวโน้มรายปีในเอกสารอ้างอิง
+
+/* ── utils ── */
+const hash = (s) => { let x = 7; for (const c of s) x = ((x * 31) + c.charCodeAt(0)) >>> 0; return x.toString(16); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const num = (n) => (n || 0).toLocaleString("th-TH");
+const learnerVal = (p, k) => (p.learners && p.learners[k] != null ? p.learners[k].toLocaleString("th-TH") : "N/A");
+const sumL = (arr, k) => arr.reduce((s, p) => s + ((p.learners && p.learners[k]) || 0), 0);
+const hasL = (arr, k) => arr.some((p) => p.learners && p.learners[k] != null);
+async function loadS(key, fb) { try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : fb; } catch { return fb; } }
+async function saveS(key, v) { try { await window.storage.set(key, JSON.stringify(v), true); return true; } catch (e) { console.error(e); return false; } }
+
+function exportCSV(programs, filename = "credit-bank-chiangmai.csv") {
+  const head = ["รหัส", "ชื่อหลักสูตร", "สถานศึกษา", "สถานะขึ้นทะเบียนสถานศึกษา", "สังกัด", "อำเภอ", "กลุ่มอาชีพ", "รูปแบบ", "NQF", "ชั่วโมง/หน่วยกิต", "กลุ่มเป้าหมาย", "สถานะหลักสูตร", "ปี", "ผู้สมัคร", "ผู้เรียนจริง", "ได้รับหน่วยกิต", "เทียบโอนสำเร็จ", "คู่ความร่วมมือ", "รายละเอียด", "ลิงก์สมัคร", "อัปเดต"];
+  const rows = programs.map((p) => [p.code, p.name, p.provider, p.reg ? "ขึ้นทะเบียนแล้ว" : "ยังไม่ขึ้นทะเบียน (เครือข่ายขับเคลื่อน)", p.affil, p.district, p.occ, `รูปแบบที่ ${p.model} ${MODELS[p.model - 1].short}`, p.nqf, p.hours, (p.targets || []).join("/"), p.status, p.year, p.learners?.applied ?? "", p.learners?.enrolled ?? "", p.learners?.credited ?? "", p.learners?.transferred ?? "", p.partners, p.fields, p.applyUrl || "", UPDATED_AT]);
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = "\uFEFF" + [head, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ── atoms ── */
+const Chip = ({ children, color = "#2C4E8A", filled }) => (
+  <span style={{ display: "inline-block", padding: "1px 9px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: filled ? color : `${color}18`, color: filled ? "#fff" : color, marginRight: 5, marginBottom: 3 }}>{children}</span>
+);
+const SectionTitle = ({ children }) => <h2 className="sec-title">{children}</h2>;
+
+/* ============================================================ */
+function App() {
+  const [tab, setTab] = useState("exec");
+  const [db, setDb] = useState({ programs: [], agencies: [], labor: [], needs: [], consults: [] });
+  const [session, setSession] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [jump, setJump] = useState(null); // model filter jump
+  const [live, setLive] = useState(null); // ข้อมูลสดจาก Apps Script (null = ยังไม่เชื่อม/ยังไม่โหลด)
+  const [liveMsg, setLiveMsg] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const [programs, agencies, labor, needs, consults] = await Promise.all([
+        loadS("cb2-programs", []), loadS("cb2-agencies", []), loadS("cb2-labor", []), loadS("cb2-needs", []), loadS("cb2-consults", []),
+      ]);
+      setDb({ programs, agencies, labor, needs, consults });
+      setReady(true);
+    })();
+  }, []);
+
+  // ดึงข้อมูลสดจาก Apps Script (ถ้าตั้งค่า API_URL ไว้)
+  useEffect(() => {
+    if (!API_URL) return;
+    (async () => {
+      try {
+        setLiveMsg("กำลังเชื่อมต่อฐานข้อมูล…");
+        const res = await fetch(API_URL + "?api=public");
+        const data = await res.json();
+        setLive(data);
+        setLiveMsg("");
+      } catch (e) {
+        setLiveMsg("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ — แสดงข้อมูลตั้งต้นแทน");
+      }
+    })();
+  }, []);
+
+  const regOrgs = useMemo(() => new Set(db.agencies.filter((a) => a.role === "school" && a.regStatus === "ขึ้นทะเบียนแล้ว").map((a) => a.org)), [db.agencies]);
+
+  // ── เลือกแหล่งข้อมูล: ถ้ามีข้อมูลสดจาก Apps Script ใช้ข้อมูลสด, ไม่งั้นใช้ข้อมูลตั้งต้น (SEED) ──
+  const allPrograms = useMemo(() => {
+    if (live && Array.isArray(live.programs)) {
+      return live.programs.map((p) => ({
+        ...p,
+        learners: (p.enrollments && p.enrollments.length)
+          ? p.enrollments.reduce((acc, e) => ({
+              applied: (acc.applied || 0) + (e.applied || 0),
+              enrolled: (acc.enrolled || 0) + (e.enrolled || 0),
+              credited: (acc.credited || 0) + (e.credited || 0),
+              transferred: (acc.transferred || 0) + (e.transferred || 0),
+            }), {})
+          : null,
+        partners: Array.isArray(p.partners) ? p.partners.map((x) => x.name).join(", ") : (p.partners || ""),
+      }));
+    }
+    return [...SEED, ...db.programs].map((p) => ({ ...p, reg: isRegProvider(p.provider) || regOrgs.has(p.provider) }));
+  }, [live, db.programs, regOrgs]);
+
+  const allLabor = useMemo(() => {
+    if (live && Array.isArray(live.labor)) return live.labor;
+    return [...SEED_LABOR, ...db.labor];
+  }, [live, db.labor]);
+
+  const update = (key, storageKey) => async (next) => {
+    setDb((d) => ({ ...d, [key]: next }));
+    return saveS(storageKey, next);
+  };
+
+  return (
+    <div style={{ fontFamily: "var(--body)", background: "var(--bg)", minHeight: "100vh", color: "var(--ink)" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap');
+        :root{
+          --bg:#F4F2F8; --surface:#fff; --ink:#2A1E45; --muted:#6B6480;
+          --primary:#5B2A86; --primary-2:#7A3FA6; --primary-ink:#3D1A5E;
+          --gold:#C99A2E; --gold-2:#B0851F; --line:#E4DCEF;
+          --display:'Anuphan','Sarabun','Noto Sans Thai',sans-serif;--body:'Sarabun','Noto Sans Thai',sans-serif;
+        }
+        *{box-sizing:border-box} button,input,select,textarea{font-family:var(--body)}
+        body{margin:0}
+        .card{background:var(--surface);border-radius:16px;padding:17px 19px;box-shadow:0 2px 10px rgba(91,42,134,.07),0 1px 3px rgba(42,30,69,.05);margin-bottom:13px;border:1px solid rgba(91,42,134,.05)}
+        .tabbtn{border:none;background:transparent;padding:10px 17px;border-radius:11px;font-size:14.5px;font-weight:600;color:#E8DDF3;cursor:pointer;transition:all .18s;white-space:nowrap}
+        .tabbtn.active{background:#fff;color:var(--primary);box-shadow:0 3px 10px rgba(0,0,0,.14)}
+        .tabbtn:not(.active):hover{background:rgba(255,255,255,.16)}
+        .btn{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 17px;font-size:14px;font-weight:600;cursor:pointer;transition:all .16s;box-shadow:0 2px 6px rgba(91,42,134,.22)}
+        .btn:hover{background:var(--primary-2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(91,42,134,.3)}
+        .btn.gold{background:var(--gold);box-shadow:0 2px 6px rgba(201,154,46,.28)} .btn.gold:hover{background:var(--gold-2)}
+        .btn.ghost{background:#F0EAF7;color:var(--primary);box-shadow:none} .btn.ghost:hover{background:#E6DBF3;transform:none}
+        .field{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:9px;background:#fff;transition:border .15s}
+        .field:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,42,134,.12)}
+        label.lbl{font-size:12.5px;font-weight:700;color:var(--primary-ink);display:block;margin-bottom:4px}
+        table.reg{width:100%;border-collapse:collapse;font-size:13px}
+        table.reg th{background:linear-gradient(180deg,#F3EDFA,#EDE4F6);color:var(--primary-ink);text-align:left;padding:9px 10px;position:sticky;top:0;font-weight:700;z-index:1}
+        table.reg td{padding:9px 10px;border-bottom:1px solid #F0EAF7;vertical-align:top}
+        table.reg tbody tr:hover{background:#FAF7FD}
+        .subnav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+        .subbtn{border:none;border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:600;cursor:pointer;background:#EFE8F7;color:var(--primary);transition:all .15s}
+        .subbtn:hover{background:#E4D8F2} .subbtn.on{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(91,42,134,.25)}
+        .sec-title{font-family:var(--display);font-size:18px;font-weight:700;margin:22px 2px 11px;color:var(--primary-ink);display:flex;align-items:center;gap:9px}
+        .sec-title::before{content:"";width:5px;height:20px;background:linear-gradient(var(--gold),var(--primary));border-radius:3px;display:inline-block}
+        ::-webkit-scrollbar{height:9px;width:9px}::-webkit-scrollbar-thumb{background:#D4C6E6;border-radius:9px}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        .card,.sec-title{animation:fadeUp .3s ease both}
+      `}</style>
+
+      <header style={{ background: "linear-gradient(125deg,#3D1A5E 0%,#5B2A86 55%,#7A3FA6 100%)", padding: "0", boxShadow: "0 4px 20px rgba(61,26,94,.25)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", right: -40, top: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,154,46,.18),transparent 70%)" }} />
+        <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,.08),transparent 70%)" }} />
+        <div style={{ maxWidth: 1160, margin: "0 auto", padding: "18px 20px 0", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 15, flexWrap: "wrap" }}>
+            <div style={{ width: 62, height: 62, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 3px 12px rgba(0,0,0,.25)", flexShrink: 0, padding: 3 }}>
+              <img src={LOGO} alt="ตราสัญลักษณ์ สำนักงานศึกษาธิการจังหวัดเชียงใหม่" style={{ width: 56, height: 56, objectFit: "contain" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: 22, color: "#fff", lineHeight: 1.2, letterSpacing: .2 }}>ระบบธนาคารหน่วยกิตจังหวัดเชียงใหม่</div>
+              <div style={{ fontSize: 12.5, color: "#E4D3F2", marginTop: 2 }}>Chiang Mai Credit Bank · ระบบสารสนเทศกลาง — ทะเบียนหลักสูตร · Dashboard ผู้บริหาร · บริการประชาชน</div>
+              <div style={{ fontSize: 11, color: "#C9AEDE", marginTop: 1 }}>สำนักงานศึกษาธิการจังหวัดเชียงใหม่ · Chiang Mai Provincial Education Office</div>
+              {API_URL && (
+                <div style={{ fontSize: 10.5, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,.14)", padding: "2px 9px", borderRadius: 99, color: "#fff" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: liveMsg ? "#E7B24A" : "#7DD3A0", display: "inline-block" }} />
+                  {liveMsg || (live ? "เชื่อมต่อฐานข้อมูลสด" : "กำลังโหลด…")}
+                </div>
+              )}
+            </div>
+          </div>
+          <nav style={{ display: "flex", gap: 5, marginTop: 16, flexWrap: "wrap" }}>
+            {[["exec", "📊 Dashboard ผู้บริหาร"], ["public", "🔎 บริการประชาชน"], ["agency", session ? `🏫 ${session.org}` : "🏫 สำหรับหน่วยงาน"]].map(([k, t]) => (
+              <button key={k} className={`tabbtn ${tab === k ? "active" : ""}`} onClick={() => setTab(k)}>{t}</button>
+            ))}
+          </nav>
+          <div style={{ height: 4, background: "linear-gradient(90deg,var(--gold),transparent)", marginTop: 0, borderRadius: "3px 3px 0 0" }} />
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1160, margin: "0 auto", padding: "20px 18px 60px" }}>
+        {!ready && <div className="card">กำลังโหลดข้อมูล…</div>}
+        {ready && tab === "exec" && <ExecDashboard programs={allPrograms} agencies={db.agencies} labor={allLabor} needs={db.needs} jump={jump} setJump={setJump} />}
+        {ready && tab === "public" && <PublicPortal programs={allPrograms} needs={db.needs} setNeeds={update("needs", "cb2-needs")} consults={db.consults} setConsults={update("consults", "cb2-consults")} />}
+        {ready && tab === "agency" && (
+          <AgencyPortal session={session} setSession={setSession} db={db}
+            setAgencies={update("agencies", "cb2-agencies")} setPrograms={update("programs", "cb2-programs")}
+            setLabor={update("labor", "cb2-labor")} allPrograms={allPrograms} allLabor={allLabor} />
+        )}
+      </main>
+      <footer style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: "20px 16px 28px", borderTop: "1px solid var(--line)", marginTop: 10 }}>
+        ศูนย์ธนาคารหน่วยกิตระดับจังหวัด · สำนักงานศึกษาธิการจังหวัดเชียงใหม่ · เชื่อมโยงตามกรอบคุณวุฒิแห่งชาติ (NQF)<br />ข้อมูล ณ วันที่ {UPDATED_AT}
+      </footer>
+    </div>
+  );
+}
+
+/* ════════════ 1) DASHBOARD ผู้บริหาร ════════════ */
+function ExecDashboard({ programs, agencies, labor, needs, jump, setJump }) {
+  const [modalModel, setModalModel] = useState(null);
+  const providers = new Set(programs.map((p) => p.provider));
+  const nqfLinked = programs.filter((p) => p.nqf && p.nqf !== "ไม่มีข้อมูล").length;
+  const mou = new Set();
+  programs.forEach((p) => (p.partners || "").split(",").map((x) => x.trim()).filter((x) => x && x !== "-").forEach((x) => mou.add(x)));
+
+  const cards = [
+    ["📚", "หลักสูตร/รายการในระบบ", num(programs.length), "รายการ", "#5B2A86"],
+    ["🏫", "สถานศึกษา/หน่วยงานเจ้าของหลักสูตร", num(providers.size), "แห่ง", "#7A3FA6"],
+    ["✅", "สถานศึกษาขึ้นทะเบียนแล้ว (ทางการ)", num(REGISTERED.length), "แห่ง", "#2E7D5B"],
+    ["🎯", "หลักสูตรเชื่อมโยง NQF", num(nqfLinked), "หลักสูตร", "#0E7C7B"],
+    ["🤝", "โรงเรียน/สถาบันคู่ความร่วมมือ", num(mou.size), "แห่ง", "#C99A2E"],
+    ["🧑‍🎓", "จำนวนผู้เรียน", "N/A", "", "#A23E6C"],
+  ];
+
+  // หน้าเต็ม: รายละเอียดรูปแบบ
+  if (modalModel != null) {
+    return <ModelPage model={modalModel} programs={programs.filter((p) => p.model === modalModel)} onBack={() => setModalModel(null)} />;
+  }
+
+  return (
+    <div>
+      <div className="card" style={{ background: "linear-gradient(120deg,#FAF7FD,#F3EDFA)", borderLeft: "5px solid var(--gold)", fontSize: 13.5, color: "var(--muted)" }}>
+        <b style={{ color: "var(--primary-ink)" }}>คำถามหลักของหน้านี้:</b> เชียงใหม่มีหลักสูตร Credit Bank กี่หลักสูตร อยู่ที่ไหน รูปแบบใด เชื่อมโยงกับใคร
+        <span style={{ marginLeft: 6, color: "#8a8296" }}>· แสดงเฉพาะข้อมูลที่ปรากฏจริงในเอกสารอ้างอิง</span>
+      </div>
+
+      {/* การ์ดสรุป (เฉพาะตัวเลขที่นับได้จริงจากข้อมูล) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 11, marginBottom: 4 }}>
+        {cards.map(([icon, l, v, u, c]) => (
+          <div key={l} className="card" style={{ marginBottom: 0, padding: "15px 15px 13px", position: "relative", overflow: "hidden", borderTop: `3px solid ${c}` }}>
+            <div style={{ position: "absolute", right: -6, top: -8, fontSize: 46, opacity: .08 }}>{icon}</div>
+            <div style={{ fontSize: 19, marginBottom: 2 }}>{icon}</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: v === "N/A" ? 22 : 27, fontWeight: 800, color: v === "N/A" ? "#a99cc0" : c, lineHeight: 1 }}>{v}<span style={{ fontSize: 12.5, color: "var(--gold-2)", marginLeft: 4, fontWeight: 600 }}>{u}</span></div>
+            <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.35, marginTop: 5 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: "#8a8296", margin: "8px 2px 0" }}>
+        หมายเหตุ: จำนวนผู้เรียนทุกรายการแสดง <b>N/A</b> เนื่องจากยังไม่มีการแจ้งจำนวนผู้เรียนอย่างเป็นทางการ — จะปรับปรุงเมื่อได้รับข้อมูลยืนยันจากสถานศึกษา/หน่วยงาน
+      </div>
+
+      {/* แถบ 5 รูปแบบ */}
+      <SectionTitle>การเทียบโอนและสะสมหน่วยกิต 5 รูปแบบ</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(205px,1fr))", gap: 10 }}>
+        {MODELS.map((m) => {
+          const ps = programs.filter((p) => p.model === m.id);
+          const sch = new Set(ps.map((p) => p.provider)).size;
+          const learners = sumL(ps, "enrolled");
+          const hasLearners = hasL(ps, "enrolled");
+          return (
+            <div key={m.id} role="button" tabIndex={0} onClick={() => setModalModel(m.id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setModalModel(m.id)}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 22px ${m.color}55`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = `0 3px 12px ${m.color}30`; }}
+              style={{ cursor: "pointer", borderRadius: 16, padding: "15px 16px", color: "#fff", background: `linear-gradient(140deg,${m.color},${m.color}D0)`, position: "relative", overflow: "hidden", boxShadow: `0 3px 12px ${m.color}30`, transition: "all .2s" }}>
+              <div style={{ position: "absolute", right: -10, top: -20, fontSize: 90, fontWeight: 800, opacity: .14, fontFamily: "var(--display)" }}>{m.id}</div>
+              <div style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: .5, background: "rgba(255,255,255,.2)", padding: "2px 9px", borderRadius: 99 }}>รูปแบบที่ {m.id}</div>
+              <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 15.5, margin: "7px 0 5px", lineHeight: 1.3 }}>{m.name}</div>
+              <div style={{ fontSize: 12, opacity: .92, lineHeight: 1.5, minHeight: 36 }}>{m.desc}</div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 9, fontSize: 11.5, fontWeight: 700 }}>
+                <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "3px 10px" }}>{ps.length} หลักสูตร</span>
+                <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "3px 10px" }}>{sch} สถานศึกษา</span>
+                <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "3px 10px" }}>{hasLearners ? `${num(learners)} ผู้เรียน` : "ผู้เรียน: N/A"}</span>
+              </div>
+              <div style={{ fontSize: 11.5, marginTop: 8, opacity: .9, borderTop: "1px solid rgba(255,255,255,.2)", paddingTop: 6, display: "flex", alignItems: "center", gap: 5, fontWeight: 600 }}>
+                👆 แตะเพื่อดูรายการหลักสูตรทั้งหมด →
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* กราฟ (เฉพาะที่นับจากจำนวนหลักสูตรได้จริง) */}
+      <SectionTitle>ภาพรวมเชิงวิเคราะห์</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 12 }}>
+        <BarByModel programs={programs} />
+        <DonutAffil programs={programs} />
+        <HBarOcc programs={programs} />
+        <DistrictBar programs={programs} />
+      </div>
+
+      {/* Demand–Supply */}
+      <SectionTitle>Demand–Supply: ความต้องการกำลังคน เทียบกับ หลักสูตร Credit Bank</SectionTitle>
+      <DemandSupply programs={programs} labor={labor} />
+      {needs.length > 0 && <NeedsSummary needs={needs} />}
+
+      {/* ทะเบียนหลักสูตร */}
+      <SectionTitle>ทะเบียนหลักสูตร Credit Bank (กรองได้)</SectionTitle>
+      <Registry programs={programs} jump={jump} />
+    </div>
+  );
+}
+
+/* ── หน้าเต็ม: รายละเอียดรูปแบบ + รายการหลักสูตร ── */
+function ModelPage({ model, programs, onBack }) {
+  const m = MODELS[model - 1];
+  const sch = new Set(programs.map((p) => p.provider)).size;
+  const learners = sumL(programs, "enrolled");
+  const hasLearners = hasL(programs, "enrolled");
+  const reg = programs.filter((p) => p.reg).length;
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const onKey = (e) => e.key === "Escape" && onBack();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onBack]);
+  return (
+    <div style={{ animation: "fadeUp .25s ease" }}>
+      {/* แถบนำทางย้อนกลับ */}
+      <button onClick={onBack} className="btn ghost" style={{ marginBottom: 14, display: "inline-flex", alignItems: "center", gap: 7 }}>← กลับสู่ Dashboard</button>
+
+      {/* หัวหน้ารูปแบบ */}
+      <div style={{ background: `linear-gradient(140deg,${m.color},${m.color}D0)`, color: "#fff", padding: "22px 22px 20px", borderRadius: 18, position: "relative", overflow: "hidden", boxShadow: `0 6px 22px ${m.color}40`, marginBottom: 16 }}>
+        <div style={{ position: "absolute", right: -14, top: -30, fontSize: 150, fontWeight: 800, opacity: .13, fontFamily: "var(--display)" }}>{m.id}</div>
+        <div style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: .5, background: "rgba(255,255,255,.22)", padding: "3px 12px", borderRadius: 99 }}>รูปแบบที่ {m.id}</div>
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 22, margin: "10px 0 6px", lineHeight: 1.25 }}>{m.name}</div>
+        <div style={{ fontSize: 13.5, opacity: .95, lineHeight: 1.6, maxWidth: 640 }}>{m.desc}</div>
+        <div style={{ fontSize: 12.5, opacity: .9, marginTop: 8 }}>📊 ตัวชี้วัด: {m.kpi}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, fontSize: 12.5, fontWeight: 700 }}>
+          <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "5px 14px" }}>{programs.length} หลักสูตร</span>
+          <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "5px 14px" }}>{sch} สถานศึกษา</span>
+          <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "5px 14px" }}>{reg} ขึ้นทะเบียนแล้ว</span>
+          <span style={{ background: "rgba(255,255,255,.24)", borderRadius: 99, padding: "5px 14px" }}>{hasLearners ? `${num(learners)} ผู้เรียน` : "ผู้เรียน: N/A"}</span>
+        </div>
+      </div>
+
+      {/* รายการหลักสูตร */}
+      <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16, color: "var(--primary-ink)", margin: "0 2px 12px" }}>รายการหลักสูตร/รายวิชาทั้งหมดในรูปแบบนี้ ({programs.length})</div>
+      {programs.length === 0 && <div className="card" style={{ color: "#8a8296" }}>ยังไม่มีหลักสูตรในรูปแบบนี้</div>}
+      {programs.map((p) => <ProgramCard key={p.id} p={p} />)}
+
+      <button onClick={onBack} className="btn ghost" style={{ marginTop: 8 }}>← กลับสู่ Dashboard</button>
+    </div>
+  );
+}
+
+/* ── รายการข้อมูลซ้ำ / ไม่ตรงกัน (ยืนยันการตัดสินใจแล้ว) ── */
+const DUP_ITEMS = [
+  { t: "ตาราง ศธจ. ปรากฏซ้ำ 2 ไฟล์", d: "ข้อมูลสถานศึกษาชุดเดียวกัน (เทคนิคสารภี, การอาชีพจอมทอง, อาชีวศึกษาเชียงใหม่ ฯลฯ) อยู่ทั้งไฟล์ PDF และแบบสำรวจ CB ศธจ.", ok: "✅ ยืนยัน: รวมเป็นชุดเดียว ไม่นับซ้ำ" },
+  { t: "รายชื่อโรงเรียนคู่พายัพฯ", d: "ตาราง ศธจ. ระบุ 8 โรงเรียน (มีบ้านสันคะยอม, ป่าแป๋วิทยา) ส่วน ศน.นิด ระบุอีกชุด (ร่ำเปิงวิทยา, บ้านหลักปัน)", ok: "✅ ยืนยัน: ใช้รายชื่อตาม ตาราง ศธจ." },
+  { t: "รร.มัธยมกัลยาณิวัฒนา", d: "ศน.นิด (ทวิศึกษา 2567) ระบุคู่ วอศ.เชียงใหม่ คอมพิวเตอร์ธุรกิจ · เอกสาร 26 มิ.ย. 69 ระบุคู่ วท.เชียงใหม่ ช่างก่อสร้าง 15 นก.", ok: "✅ ยืนยัน: ใช้เอกสาร 26 มิ.ย. 69 (คู่ วท.เชียงใหม่ ช่างก่อสร้าง)" },
+  { t: "โรงเรียนเครือข่าย LEAP มช.", d: "ศน.นิด ระบุ 6 โรงเรียน · รายงาน สพม.เชียงใหม่ ระบุ 10 โรงเรียน", ok: "✅ ยืนยัน: ใช้ตัวเลข 10 โรงเรียน ตามรายงาน สพม." },
+  { t: "รร.เวียงแหงวิทยาคม ปรากฏหลายโครงการ", d: "ปรากฏใน ทวิศึกษา / ม.แม่โจ้ / มทร.ล้านนา / LEAP มช. — เสี่ยงนับผู้เรียนซ้ำ", ok: "✅ ยืนยัน: ยังไม่มีการแจ้งจำนวนผู้เรียนทางการ จึงแสดง N/A ทุกรายการ และระวังไม่นับซ้ำเมื่อได้ตัวเลขจริง" },
+  { t: "Pre-Degree ม.แม่โจ้ ปรากฏ 2 แหล่ง (สอดคล้อง)", d: "รายวิชาเซลล์แสงอาทิตย์/เขียนแบบเครื่องกล/IoT ปรากฏทั้งตาราง ศธจ. และ ศน.นิด ตรงกัน", ok: "✅ ยืนยัน: รวมเป็นรายการเดียว (CB-CMI-012)" },
+];
+function DupPanel() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card" style={{ marginTop: 12, background: "#F1FAF4", border: "1.5px solid #B8E0C8" }}>
+      <button onClick={() => setOpen(!open)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", padding: 0 }}>
+        <span style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 15, color: "#1F6B43" }}>✓ รายการข้อมูลซ้ำ/ไม่ตรงกัน — ยืนยันการตัดสินใจแล้ว ({DUP_ITEMS.length})</span>
+        <span style={{ color: "#1F6B43", fontWeight: 700 }}>{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          {DUP_ITEMS.map((it, i) => (
+            <div key={i} style={{ padding: "10px 12px", background: "#fff", borderRadius: 10, marginBottom: 7, borderLeft: "4px solid #2E7D5B" }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--primary-ink)" }}>{i + 1}. {it.t}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2, lineHeight: 1.6 }}>{it.d}</div>
+              <div style={{ fontSize: 12.5, color: "#1F6B43", marginTop: 4, fontWeight: 600 }}>{it.ok}</div>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: "#1F6B43", marginTop: 4 }}>บันทึกการตัดสินใจไว้เพื่อความโปร่งใส · จำนวนผู้เรียนทุกรายการแสดง N/A จนกว่าจะมีการแจ้งอย่างเป็นทางการ</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── charts (custom, lightweight) ── */
+function BarByModel({ programs }) {
+  const counts = MODELS.map((m) => programs.filter((p) => p.model === m.id).length);
+  const max = Math.max(...counts, 1);
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>จำนวนหลักสูตรแยกตาม 5 รูปแบบ</div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 150, padding: "0 4px" }}>
+        {MODELS.map((m, i) => (
+          <div key={m.id} style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{counts[i]}</div>
+            <div style={{ background: m.color, borderRadius: "6px 6px 0 0", height: `${(counts[i] / max) * 110}px`, transition: "height .4s" }} />
+            <div style={{ fontSize: 11, color: "#5b6a86", marginTop: 4 }}>รูปแบบ {m.id}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DonutAffil({ programs }) {
+  const data = AFFILS.map((a) => ({ a, n: programs.filter((p) => p.affil === a).length })).filter((d) => d.n > 0);
+  const total = data.reduce((s, d) => s + d.n, 0) || 1;
+  let acc = 0; const C = 2 * Math.PI * 42;
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>สัดส่วนหลักสูตรตามสังกัด</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="สัดส่วนหลักสูตรตามสังกัด">
+          {data.map((d) => {
+            const frac = d.n / total, dash = frac * C, off = -acc * C; acc += frac;
+            return <circle key={d.a} cx="60" cy="60" r="42" fill="none" stroke={AFFIL_COLOR[d.a]} strokeWidth="20" strokeDasharray={`${dash} ${C - dash}`} strokeDashoffset={off} transform="rotate(-90 60 60)" />;
+          })}
+          <text x="60" y="64" textAnchor="middle" fontSize="18" fontWeight="700" fill="#1B2A4A">{total}</text>
+        </svg>
+        <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
+          {data.map((d) => <div key={d.a}><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: AFFIL_COLOR[d.a], marginRight: 6 }} />{d.a} — {d.n} ({Math.round((d.n / total) * 100)}%)</div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HBarOcc({ programs }) {
+  const data = OCC.map((o) => ({ o, n: programs.filter((p) => p.occ === o).length })).filter((d) => d.n > 0).sort((a, b) => b.n - a.n);
+  const max = Math.max(...data.map((d) => d.n), 1);
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>หลักสูตรแยกตามกลุ่มอาชีพ</div>
+      {data.map((d) => (
+        <div key={d.o} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 12.5 }}>
+          <div style={{ width: 110, textAlign: "right", color: "#3b4a6b" }}>{d.o}</div>
+          <div style={{ flex: 1, background: "#e8edf6", borderRadius: 99, height: 12 }}>
+            <div style={{ width: `${(d.n / max) * 100}%`, background: "var(--primary)", height: 12, borderRadius: 99 }} />
+          </div>
+          <div style={{ width: 22, fontWeight: 700 }}>{d.n}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DistrictBar({ programs }) {
+  const data = DISTRICTS.map((d) => ({ d, n: programs.filter((p) => p.district === d).length })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+  const max = Math.max(...data.map((x) => x.n), 1);
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>หลักสูตรรายอำเภอ (สูงสุด 8 อันดับ)</div>
+      {data.map((x) => (
+        <div key={x.d} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 12.5 }}>
+          <div style={{ width: 100, textAlign: "right", color: "#3b4a6b" }}>{x.d}</div>
+          <div style={{ flex: 1, background: "#e8edf6", borderRadius: 99, height: 12 }}>
+            <div style={{ width: `${(x.n / max) * 100}%`, background: "#0E7C7B", height: 12, borderRadius: 99 }} />
+          </div>
+          <div style={{ width: 22, fontWeight: 700 }}>{x.n}</div>
+        </div>
+      ))}
+      <div style={{ fontSize: 11, color: "#8a93a8", marginTop: 4 }}>* ระยะถัดไป: แสดงเป็นแผนที่จังหวัดเชียงใหม่รายอำเภอ</div>
+    </div>
+  );
+}
+
+function DemandSupply({ programs, labor }) {
+  const groups = OCC.map((o) => {
+    const demand = labor.filter((l) => l.occ === o).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    const ps = programs.filter((p) => p.occ === o);
+    const supply = sumL(ps, "enrolled");
+    return { o, demand, supply, nProg: ps.length };
+  }).filter((g) => g.demand > 0 || g.supply > 0);
+  const max = Math.max(...groups.flatMap((g) => [g.demand, g.supply]), 1);
+  if (labor.length === 0) {
+    return (
+      <div className="card" style={{ color: "#64748b", fontSize: 13.5, lineHeight: 1.7 }}>
+        ยังไม่มีข้อมูลความต้องการกำลังคน (Demand) — เอกสารอ้างอิงไม่ได้ระบุ<br />
+        เมื่อสถานประกอบการ/หน่วยงานกรอกข้อมูลผ่านแท็บ “สำหรับหน่วยงาน → สถานประกอบการ” ระบบจะเปรียบเทียบ Demand ตลาดแรงงาน กับ Supply หลักสูตร Credit Bank โดยอัตโนมัติ พร้อมชี้ช่องว่าง (เช่น ตลาดต้องการแต่ยังไม่มีหลักสูตรรองรับ)
+      </div>
+    );
+  }
+  return (
+    <div className="card">
+      {groups.map((g) => (
+        <div key={g.o} style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
+            <b>{g.o}</b>
+            <span style={{ color: g.nProg === 0 && g.demand > 0 ? "#A34262" : "#5b6a86", fontWeight: g.nProg === 0 && g.demand > 0 ? 700 : 400 }}>
+              {g.nProg === 0 && g.demand > 0 ? "⚠ ตลาดต้องการ แต่ยังไม่มีหลักสูตรในระบบ" : `${g.nProg} หลักสูตรในระบบ`}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 3 }}>
+            <span style={{ width: 118, textAlign: "right", color: "#A34262" }}>Demand ตลาดแรงงาน</span>
+            <div style={{ flex: 1, background: "#f3e6ea", borderRadius: 99, height: 11 }}><div style={{ width: `${(g.demand / max) * 100}%`, background: "#A34262", height: 11, borderRadius: 99 }} /></div>
+            <span style={{ width: 56, fontWeight: 700, color: "#A34262" }}>{num(g.demand)} คน/ปี</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ width: 118, textAlign: "right", color: "#2C4E8A" }}>Supply ผู้เรียนในระบบ</span>
+            <div style={{ flex: 1, background: "#e6ecf7", borderRadius: 99, height: 11 }}><div style={{ width: `${(g.supply / max) * 100}%`, background: "#2C4E8A", height: 11, borderRadius: 99 }} /></div>
+            <span style={{ width: 56, fontWeight: 700, color: "#2C4E8A" }}>{num(g.supply)} คน</span>
+          </div>
+        </div>
+      ))}
+      <div style={{ fontSize: 11.5, color: "#8a93a8" }}>Demand จากแบบฟอร์ม “ความต้องการกำลังคน” ที่สถานประกอบการกรอก · Supply นับจากจำนวนผู้เรียนที่มีข้อมูลในระบบ</div>
+    </div>
+  );
+}
+
+function NeedsSummary({ needs }) {
+  const byField = {};
+  needs.forEach((n) => { const k = (n.field || "ไม่ระบุ").trim(); byField[k] = (byField[k] || 0) + 1; });
+  const rows = Object.entries(byField).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  return (
+    <div className="card">
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>เสียงจากประชาชน: สาขาที่มีผู้แจ้งความต้องการเรียน ({needs.length} รายการ)</div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {rows.map(([f, n]) => <Chip key={f} color="#0E7C7B">{f} × {n}</Chip>)}
+      </div>
+      <div style={{ fontSize: 11.5, color: "#8a93a8", marginTop: 6 }}>ใช้ระบุว่า “ประชาชนอยากเรียนอะไร แต่ระบบยังไม่มีหลักสูตรรองรับ” เพื่อวางแผนพัฒนาหลักสูตรใหม่</div>
+    </div>
+  );
+}
+
+/* ── ทะเบียนหลักสูตร ── */
+function Registry({ programs, jump }) {
+  const [f, setF] = useState({ q: "", model: 0, affil: "", district: "", occ: "", nqf: "", year: "", reg: "" });
+  useEffect(() => { if (jump) setF((x) => ({ ...x, model: jump })); }, [jump]);
+  const rows = programs.filter((p) => {
+    if (f.reg === "reg" && !p.reg) return false;
+    if (f.reg === "unreg" && p.reg) return false;
+    if (f.model && p.model !== Number(f.model)) return false;
+    if (f.affil && p.affil !== f.affil) return false;
+    if (f.district && p.district !== f.district) return false;
+    if (f.occ && p.occ !== f.occ) return false;
+    if (f.nqf && p.nqf !== f.nqf) return false;
+    if (f.year && p.year !== f.year) return false;
+    if (f.q) { const s = `${p.code} ${p.name} ${p.provider} ${p.fields} ${p.partners}`.toLowerCase(); if (!s.includes(f.q.toLowerCase())) return false; }
+    return true;
+  });
+  const sel = (k, opts, all) => (
+    <select className="field" style={{ marginBottom: 0 }} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-label={all}>
+      <option value="">{all}</option>{opts.map((o) => <option key={o}>{o}</option>)}
+    </select>
+  );
+  return (
+    <div className="card">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8, marginBottom: 10 }}>
+        <input className="field" style={{ marginBottom: 0 }} placeholder="ค้นหา…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+        <select className="field" style={{ marginBottom: 0 }} value={f.model} onChange={(e) => setF({ ...f, model: Number(e.target.value) })} aria-label="รูปแบบ">
+          <option value={0}>ทุกรูปแบบ</option>{MODELS.map((m) => <option key={m.id} value={m.id}>รูปแบบ {m.id} · {m.short}</option>)}
+        </select>
+        {sel("affil", AFFILS, "ทุกสังกัด")}
+        {sel("district", DISTRICTS, "ทุกอำเภอ")}
+        {sel("occ", OCC, "ทุกกลุ่มอาชีพ")}
+        {sel("nqf", NQF_LEVELS, "ทุกระดับ NQF")}
+        <select className="field" style={{ marginBottom: 0 }} value={f.reg} onChange={(e) => setF({ ...f, reg: e.target.value })} aria-label="การขึ้นทะเบียน">
+          <option value="">ทุกสถานะขึ้นทะเบียน</option><option value="reg">✅ สถานศึกษาขึ้นทะเบียนแล้ว</option><option value="unreg">⏳ ยังไม่ขึ้นทะเบียน</option>
+        </select>
+        {sel("year", YEARS, "ทุกปีการศึกษา")}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        <span style={{ fontSize: 13, color: "#5b6a86" }}>พบ <b style={{ color: "var(--primary)" }}>{rows.length}</b> รายการ</span>
+        <button className="btn gold" onClick={() => exportCSV(rows)}>⬇ Export Excel/CSV</button>
+      </div>
+      <div style={{ overflowX: "auto", maxHeight: 500 }}>
+        <table className="reg">
+          <thead><tr><th>รหัส</th><th>หลักสูตร / สถานศึกษา</th><th>ขึ้นทะเบียน</th><th>สังกัด·อำเภอ</th><th>กลุ่มอาชีพ</th><th>รูปแบบ</th><th>NQF</th><th>ปี</th><th style={{ textAlign: "right" }}>ผู้เรียน</th><th>อัปเดต</th></tr></thead>
+          <tbody>
+            {rows.map((p) => (
+              <tr key={p.id}>
+                <td style={{ whiteSpace: "nowrap", fontWeight: 700, color: "var(--primary)" }}>{p.code}</td>
+                <td><b>{p.name}</b><div style={{ color: "#5b6a86" }}>{p.provider}</div>
+                  {p.fields && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{p.fields}</div>}
+                  {p.partners && p.partners !== "-" && <div style={{ fontSize: 11.5, color: "#8a93a8", marginTop: 2 }}>🤝 {p.partners}</div>}
+                  {p.dup && <div style={{ fontSize: 11.5, color: "#946200", marginTop: 2, background: "#FFF9EC", padding: "2px 6px", borderRadius: 6, display: "inline-block" }}>⚠ {p.dup}</div>}
+                  {p.applyUrl && <div><a href={p.applyUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: "#0E7C7B" }}>↗ ดูรายละเอียด/สมัคร</a></div>}
+                </td>
+                <td>{p.reg ? <Chip color="#3D8B37" filled>✓ ขึ้นทะเบียนแล้ว</Chip> : <Chip color="#8a93a8">⏳ เครือข่าย</Chip>}</td>
+                <td>{p.affil}<div style={{ color: "#8a93a8", fontSize: 11.5 }}>{p.district}</div></td>
+                <td>{p.occ}</td>
+                <td><Chip color={MODELS[p.model - 1].color} filled>{p.model}</Chip></td>
+                <td style={{ whiteSpace: "nowrap" }}>{p.nqf}</td>
+                <td style={{ whiteSpace: "nowrap" }}>{p.year}</td>
+                <td style={{ textAlign: "right", fontWeight: 700 }}>{learnerVal(p, "enrolled")}</td>
+                <td style={{ fontSize: 11, color: "#a99cc0", whiteSpace: "nowrap" }}>{UPDATED_AT}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 && <div style={{ padding: 18, textAlign: "center", color: "#8a93a8" }}>ไม่พบรายการตามเงื่อนไข</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════ 2) บริการประชาชน (ระยะที่ 2) ════════════ */
+function PublicPortal({ programs, needs, setNeeds, consults, setConsults }) {
+  const [sub, setSub] = useState("search");
+  const activePrograms = programs;
+  return (
+    <div>
+      <div className="subnav">
+        {[["search", "🔎 ค้นหาหลักสูตร"], ["plan", "🧭 วางแผน + ผู้ช่วย AI"], ["need", "📝 แจ้งความต้องการเรียน"], ["consult", "💬 ขอคำปรึกษา"], ["faq", "❓ FAQ"]].map(([k, t]) => (
+          <button key={k} className={`subbtn ${sub === k ? "on" : ""}`} onClick={() => setSub(k)}>{t}</button>
+        ))}
+      </div>
+      {sub === "search" && <PublicSearch programs={activePrograms} />}
+      {sub === "plan" && <Planner programs={activePrograms} />}
+      {sub === "need" && <NeedForm needs={needs} setNeeds={setNeeds} />}
+      {sub === "consult" && <ConsultForm consults={consults} setConsults={setConsults} />}
+      {sub === "faq" && <Faq />}
+    </div>
+  );
+}
+
+function ProgramCard({ p }) {
+  const m = MODELS[p.model - 1];
+  return (
+    <div className="card" style={{ borderLeft: `5px solid ${m.color}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16 }}>{p.name}</div>
+        <span style={{ fontSize: 12, color: "#8a93a8" }}>{p.code}</span>
+      </div>
+      <div style={{ fontSize: 13.5, color: "#4a5568", margin: "3px 0 7px" }}>{p.provider} · อ.{p.district} · {p.affil}</div>
+      <div>
+        {p.reg ? <Chip color="#3D8B37" filled>✓ สถานศึกษาขึ้นทะเบียนธนาคารหน่วยกิตแล้ว</Chip> : <Chip color="#8a93a8">⏳ เครือข่ายขับเคลื่อน (ยังไม่ขึ้นทะเบียน)</Chip>}
+        <Chip color={m.color} filled>รูปแบบ {m.id} · {m.short}</Chip>
+        <Chip color="#555">NQF {p.nqf}</Chip>
+        {p.hours && p.hours !== "ไม่มีข้อมูล" && <Chip color="#0E7C7B">{p.hours}</Chip>}
+        {(p.targets || []).map((t) => <Chip key={t} color="#6b7280">{t}</Chip>)}
+      </div>
+      <div style={{ fontSize: 13, marginTop: 7, lineHeight: 1.6 }}>{p.fields}</div>
+      {p.partners && p.partners !== "-" && <div style={{ fontSize: 12, marginTop: 5, color: "#64748b" }}>🤝 {p.partners}</div>}
+      {p.learners && p.learners.enrolled != null && (
+        <div style={{ fontSize: 12.5, marginTop: 6, color: "var(--primary)", fontWeight: 700 }}>🧑‍🎓 ผู้เรียน {learnerVal(p, "enrolled")} คน</div>
+      )}
+      {p.dup && (
+        <div style={{ fontSize: 12, marginTop: 7, color: "#946200", background: "#FFF9EC", border: "1px solid #F0D9A0", padding: "6px 10px", borderRadius: 9, lineHeight: 1.5 }}>⚠ {p.dup}</div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+        {p.applyUrl
+          ? <a href={p.applyUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 700, color: "#0E7C7B" }}>↗ สมัคร/ดูรายละเอียดที่หน่วยงานเจ้าของหลักสูตร</a>
+          : <span style={{ fontSize: 12, color: "#8a8296" }}>ติดต่อสมัครที่สถานศึกษาเจ้าของหลักสูตรโดยตรง</span>}
+        <span style={{ fontSize: 11, color: "#a99cc0" }}>อัปเดต {UPDATED_AT}</span>
+      </div>
+    </div>
+  );
+}
+
+function PublicSearch({ programs }) {
+  const [q, setQ] = useState(""); const [occ, setOcc] = useState(""); const [dist, setDist] = useState(""); const [model, setModel] = useState(0); const [target, setTarget] = useState(""); const [reg, setReg] = useState("");
+  const rows = programs.filter((p) => {
+    if (reg === "reg" && !p.reg) return false;
+    if (reg === "unreg" && p.reg) return false;
+    if (occ && p.occ !== occ) return false;
+    if (dist && p.district !== dist) return false;
+    if (model && p.model !== model) return false;
+    if (target && !(p.targets || []).includes(target)) return false;
+    if (q) { const s = `${p.name} ${p.provider} ${p.fields}`.toLowerCase(); if (!s.includes(q.toLowerCase())) return false; }
+    return true;
+  });
+  return (
+    <div>
+      <div className="card">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+          <input className="field" style={{ marginBottom: 0 }} placeholder="ค้นหา เช่น ช่างไฟฟ้า…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="field" style={{ marginBottom: 0 }} value={occ} onChange={(e) => setOcc(e.target.value)}><option value="">ทุกสาขาอาชีพ</option>{OCC.map((o) => <option key={o}>{o}</option>)}</select>
+          <select className="field" style={{ marginBottom: 0 }} value={dist} onChange={(e) => setDist(e.target.value)}><option value="">ทุกอำเภอ</option>{DISTRICTS.map((d) => <option key={d}>{d}</option>)}</select>
+          <select className="field" style={{ marginBottom: 0 }} value={target} onChange={(e) => setTarget(e.target.value)}><option value="">ทุกระดับผู้เรียน</option>{TARGETS.map((t) => <option key={t}>{t}</option>)}</select>
+          <select className="field" style={{ marginBottom: 0 }} value={model} onChange={(e) => setModel(Number(e.target.value))}><option value={0}>ทุกรูปแบบ Credit Bank</option>{MODELS.map((m) => <option key={m.id} value={m.id}>รูปแบบ {m.id} · {m.short}</option>)}</select>
+          <select className="field" style={{ marginBottom: 0 }} value={reg} onChange={(e) => setReg(e.target.value)}><option value="">ทุกสถานะขึ้นทะเบียน</option><option value="reg">✓ สถานศึกษาขึ้นทะเบียนแล้ว</option><option value="unreg">⏳ เครือข่าย (ยังไม่ขึ้นทะเบียน)</option></select>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <span style={{ fontSize: 13, color: "#5b6a86" }}>พบ <b style={{ color: "var(--primary)" }}>{rows.length}</b> หลักสูตรที่เปิดใช้จริง</span>
+          <button className="btn gold" onClick={() => exportCSV(rows, "รายชื่อหลักสูตร-credit-bank.csv")}>⬇ ดาวน์โหลดรายชื่อหลักสูตร</button>
+        </div>
+      </div>
+      {rows.map((p) => <ProgramCard key={p.id} p={p} />)}
+      {rows.length === 0 && (
+        <div className="card" style={{ textAlign: "center", color: "#64748b" }}>
+          ยังไม่มีหลักสูตรที่ตรงเงื่อนไข — สาขานี้อาจยังไม่เปิดในระบบ
+          <div style={{ marginTop: 6, fontSize: 13 }}>💡 ช่วยจังหวัดวางแผนได้โดยไปที่แท็บ “📝 แจ้งความต้องการเรียน”</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   ผู้ช่วยแนะแนว (Chatbot แบบสคริปต์ — ไม่ใช้ AI ไม่มีค่าใช้จ่าย)
+   ── แก้ข้อความบทสนทนาได้ที่ CHAT_SCRIPT ด้านล่างนี้จุดเดียว
+   ── ไม่ต้องแตะโค้ดส่วนอื่น
+══════════════════════════════════════════════════════════════ */
+
+// เส้นทางการเรียน 4 เป้าหมาย (เนื้อหานี้ควรให้ศึกษานิเทศก์ตรวจก่อนเผยแพร่)
+const PATHWAYS = {
+  อาชีวะ: {
+    label: "เรียนต่อสายอาชีพ (ปวช./ปวส.)",
+    models: [3, 1],
+    reply: "เส้นทางนี้เหมาะกับการเรียนต่อสายอาชีพค่ะ 👇",
+    steps: [
+      "เลือกหลักสูตรระยะสั้น/รายวิชาสายอาชีพจากสถานศึกษาคู่ความร่วมมือ",
+      "สะสมผลการเรียนในธนาคารหน่วยกิต (NQF ระดับ 2–3)",
+      "ยื่นเทียบโอนเมื่อสมัครเรียน ปวช./ปวส.",
+      "ลดรายวิชาซ้ำซ้อน จบเร็วขึ้น",
+    ],
+  },
+  ปริญญา: {
+    label: "เรียนต่อระดับปริญญาตรี",
+    models: [4, 2],
+    reply: "เส้นทางนี้ใช้การเก็บหน่วยกิตล่วงหน้ากับมหาวิทยาลัยค่ะ 👇",
+    steps: [
+      "ลงทะเบียนรายวิชา Pre-Degree ของมหาวิทยาลัยคู่ความร่วมมือ (มช. / แม่โจ้ / มรภ.เชียงใหม่ / มทร.ล้านนา)",
+      "เก็บหน่วยกิตคู่ขนานระหว่างที่ยังเรียนระดับปัจจุบัน",
+      "ยื่นเทียบโอนเมื่อเข้าศึกษาระดับปริญญาตรี",
+      "วางแผนรายวิชากับครูแนะแนวให้ตรงกับหลักสูตรเป้าหมาย",
+    ],
+  },
+  วุฒิ: {
+    label: "ขอวุฒิ / เทียบระดับการศึกษา",
+    models: [5],
+    reply: "เส้นทางนี้ใช้ประสบการณ์ทำงานมาเทียบเป็นวุฒิค่ะ 👇",
+    steps: [
+      "ติดต่อ สกร.จังหวัดเชียงใหม่ เพื่อตรวจคุณสมบัติ (อายุ 20 ปีขึ้นไป มีประสบการณ์อาชีพในเขตบริการไม่น้อยกว่า 1 ปี)",
+      "เลือกวิธี: สอบเทียบวัดระดับความรู้ หรือประเมินเทียบระดับ 2 มิติ (ประสบการณ์ + ความรู้ความคิด)",
+      "เตรียมแฟ้มสะสมงาน/หลักฐานประสบการณ์อาชีพตามกรอบ NQF",
+      "รับการรับรองคุณวุฒิระดับประถม / ม.ต้น / ม.ปลาย",
+    ],
+  },
+  ทักษะ: {
+    label: "เพิ่มทักษะอาชีพ / Re-skill",
+    models: [2, 5],
+    reply: "เส้นทางนี้เรียนแบบยืดหยุ่น ไม่ต้องเข้าชั้นเรียนเต็มเวลาค่ะ 👇",
+    steps: [
+      "เลือกหลักสูตรระยะสั้น หรือรายวิชา Lifelong Learning (Non-degree)",
+      "เรียนแบบยืดหยุ่น On-site / Online / On-demand",
+      "สะสม Certificate ในธนาคารหน่วยกิต",
+      "ต่อยอดขอ Skill Certificate หรือเทียบโอนเข้าคุณวุฒิเมื่อพร้อม",
+    ],
+  },
+};
+
+// คำถามที่พบบ่อย (กดปุ่มถามได้ทันที)
+const CHAT_FAQ = [
+  {
+    q: "ธนาคารหน่วยกิตคืออะไร",
+    a: "ธนาคารหน่วยกิต (Credit Bank) คือระบบที่ให้คุณ “สะสม” ผลการเรียน ผลการฝึกอบรม หรือประสบการณ์ทำงานไว้เป็นหน่วยกิต แล้วนำไปเทียบโอนเข้าคุณวุฒิการศึกษาในภายหลังได้ค่ะ\n\nพูดง่ายๆ คือ เรียนก่อน → เก็บไว้ → ใช้ทีหลังได้ ไม่ต้องเริ่มนับหนึ่งใหม่",
+  },
+  {
+    q: "สถานศึกษาไหนขึ้นทะเบียนแล้วบ้าง",
+    a: "ปี 2569 มีสถานศึกษาที่ได้รับการรับรองขึ้นทะเบียนอย่างเป็นทางการ 8 แห่งค่ะ\n\n🔧 อาชีวศึกษา (สอศ.) 4 แห่ง\n• วิทยาลัยเทคนิคเชียงใหม่\n• วิทยาลัยการอาชีพฝาง\n• วิทยาลัยเทคนิคสันกำแพง\n• วิทยาลัยเทคนิคสารภี\n\n🎓 อุดมศึกษา (อว.) 4 แห่ง\n• มหาวิทยาลัยเชียงใหม่\n• มหาวิทยาลัยราชภัฏเชียงใหม่\n• มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา\n• มหาวิทยาลัยแม่โจ้\n\nสถานศึกษาอื่นในระบบมีสถานะ “เครือข่ายขับเคลื่อน (ยังไม่ขึ้นทะเบียน)” ค่ะ",
+  },
+  {
+    q: "เริ่มต้นใช้ธนาคารหน่วยกิตอย่างไร",
+    a: "ทำตาม 4 ขั้นตอนนี้ได้เลยค่ะ\n\n1️⃣ ค้นหาหลักสูตรที่สนใจในแท็บ “ค้นหาหลักสูตร”\n2️⃣ ติดต่อสถานศึกษาเจ้าของหลักสูตรโดยตรง\n3️⃣ เรียนและสะสมหน่วยกิต\n4️⃣ ยื่นเทียบโอนเมื่อเรียนต่อหรือขอคุณวุฒิ\n\nหรือให้ดิฉันช่วยวางแผนให้ก็ได้นะคะ",
+  },
+  {
+    q: "ไม่พบหลักสูตรที่อยากเรียน ทำอย่างไร",
+    a: "กรอกแบบฟอร์ม “📝 แจ้งความต้องการเรียน” ได้เลยค่ะ\n\nข้อมูลของคุณจะถูกรวบรวมส่งให้จังหวัดใช้วางแผนเปิดหลักสูตรใหม่ตามความต้องการจริง — เสียงของคุณมีผลต่อการพัฒนาหลักสูตรค่ะ",
+  },
+  {
+    q: "การเทียบโอนมี 5 รูปแบบ ต่างกันอย่างไร",
+    a: "สรุปสั้นๆ ทั้ง 5 รูปแบบค่ะ\n\n1️⃣ เทียบโอนระดับเดียวกัน — เช่น ขั้นพื้นฐาน ↔ อาชีวศึกษา (ทวิศึกษา)\n2️⃣ ไม่มีชั้นเรียน 100% — เก็บทีละรายวิชา ไม่ต้องเรียนเต็มเวลา\n3️⃣ ต่อเนื่องเชื่อมโยง — ม.ต้น → ปวช. → ปวส.\n4️⃣ Pre-Degree คู่ขนาน — เรียนเก็บหน่วยกิตปริญญาตรีล่วงหน้า\n5️⃣ แปลงประสบการณ์อาชีพ — เอาประสบการณ์ทำงานมาเทียบเป็นหน่วยกิต",
+  },
+];
+
+/* ── ตั้งค่าการเชื่อมต่อ AI (ระยะต่อยอด) ──
+   เมื่อพัฒนา Google Apps Script เสร็จ ให้วาง URL ที่ deploy ไว้ตรงนี้
+   ระบบจะเปิดโหมด "พิมพ์ถามอิสระ" ให้อัตโนมัติ โดยไม่ต้องแก้โค้ดส่วนอื่น
+   ตัวอย่าง: const AI_ENDPOINT = "https://script.google.com/macros/s/XXXX/exec";
+   ── ปล่อยเป็นค่าว่าง = ใช้เฉพาะ chatbot แบบสคริปต์ (ฟรี ไม่มีค่าใช้จ่าย) ── */
+const AI_ENDPOINT = "";
+
+function Planner({ programs }) {
+  const [msgs, setMsgs] = useState([
+    { who: "bot", text: "สวัสดีค่ะ 👋 ดิฉันเป็นผู้ช่วยแนะแนวของศูนย์ธนาคารหน่วยกิตจังหวัดเชียงใหม่\n\nอยากให้ช่วยเรื่องอะไรดีคะ" },
+  ]);
+  const [stage, setStage] = useState("goal"); // goal → level → result | faq
+  const [goal, setGoal] = useState(null);
+  const [aiInput, setAiInput] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const boxRef = useRef(null);
+  useEffect(() => { boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, aiBusy]);
+
+  const say = (who, text, extra = {}) => setMsgs((m) => [...m, { who, text, ...extra }]);
+
+  const pickGoal = (key) => {
+    say("user", PATHWAYS[key].label);
+    setGoal(key);
+    setTimeout(() => { say("bot", "ตอนนี้คุณอยู่ระดับไหนคะ"); setStage("level"); }, 250);
+  };
+
+  const pickLevel = (level) => {
+    say("user", level);
+    const pw = PATHWAYS[goal];
+    const progs = programs.filter((p) => pw.models.includes(p.model) && ((p.targets || []).includes(level) || (p.targets || []).includes("ประชาชนทั่วไป")));
+    setTimeout(() => {
+      say("bot", pw.reply, { models: pw.models, steps: pw.steps, progs });
+      setStage("result");
+    }, 250);
+  };
+
+  const askFaq = (item) => {
+    say("user", item.q);
+    setTimeout(() => say("bot", item.a), 250);
+  };
+
+  const restart = () => {
+    setMsgs([{ who: "bot", text: "เริ่มใหม่ได้เลยค่ะ 😊 อยากให้ช่วยเรื่องอะไรคะ" }]);
+    setStage("goal"); setGoal(null);
+  };
+
+  // โหมด AI (ทำงานเมื่อกำหนด AI_ENDPOINT แล้วเท่านั้น)
+  const askAI = async () => {
+    const q = aiInput.trim();
+    if (!q || aiBusy || !AI_ENDPOINT) return;
+    say("user", q); setAiInput(""); setAiBusy(true);
+    try {
+      const ctx = programs.map((p) => `[${p.code}] ${p.name} | ${p.provider} | รูปแบบ ${p.model} | NQF ${p.nqf} | ${(p.targets || []).join("/")} | ${p.fields}`).join("\n");
+      const res = await fetch(AI_ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ question: q, context: ctx }),
+      });
+      const data = await res.json();
+      say("bot", data.answer || "ขออภัยค่ะ ไม่สามารถตอบได้ในขณะนี้");
+    } catch {
+      say("bot", "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้งค่ะ");
+    } finally { setAiBusy(false); }
+  };
+
+  const Bubble = ({ m }) => (
+    <div style={{ display: "flex", justifyContent: m.who === "user" ? "flex-end" : "flex-start", marginBottom: 9 }}>
+      {m.who === "bot" && <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--primary)", color: "#fff", display: "grid", placeItems: "center", fontSize: 15, marginRight: 7, flexShrink: 0 }}>🎓</div>}
+      <div style={{ maxWidth: "82%" }}>
+        <div style={{
+          padding: "10px 14px", borderRadius: m.who === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+          fontSize: 13.5, lineHeight: 1.65, whiteSpace: "pre-wrap",
+          background: m.who === "user" ? "var(--primary)" : "#fff",
+          color: m.who === "user" ? "#fff" : "var(--ink)",
+          boxShadow: "0 1px 4px rgba(42,30,69,.1)",
+        }}>{m.text}</div>
+
+        {/* การ์ดผลลัพธ์: รูปแบบ + ขั้นตอน + หลักสูตร */}
+        {m.steps && (
+          <div style={{ background: "#fff", borderRadius: "14px", padding: "12px 14px", marginTop: 7, boxShadow: "0 1px 4px rgba(42,30,69,.1)" }}>
+            <div style={{ marginBottom: 8 }}>
+              {m.models.map((id) => <Chip key={id} color={MODELS[id - 1].color} filled>รูปแบบ {id} · {MODELS[id - 1].short}</Chip>)}
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "var(--ink)" }}>
+              {m.steps.map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+            <div style={{ marginTop: 10, paddingTop: 9, borderTop: "1px solid var(--line)", fontSize: 13, fontWeight: 700, color: "var(--primary-ink)" }}>
+              📚 หลักสูตรที่เหมาะกับคุณ ({m.progs.length} รายการ)
+            </div>
+            {m.progs.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 5 }}>ยังไม่มีหลักสูตรตรงเงื่อนไขในระบบ — ลองกรอก “แจ้งความต้องการเรียน” เพื่อให้จังหวัดพิจารณาเปิดหลักสูตรใหม่ค่ะ</div>}
+            {m.progs.slice(0, 3).map((p) => (
+              <div key={p.id} style={{ fontSize: 12.5, marginTop: 7, paddingLeft: 9, borderLeft: `3px solid ${MODELS[p.model - 1].color}`, lineHeight: 1.5 }}>
+                <b>{p.name}</b><br />
+                <span style={{ color: "var(--muted)" }}>{p.provider} · อ.{p.district}</span>
+              </div>
+            ))}
+            {m.progs.length > 3 && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 7 }}>…และอีก {m.progs.length - 3} รายการ — ดูทั้งหมดได้ที่แท็บ “🔎 ค้นหาหลักสูตร”</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      {/* หัวแชท */}
+      <div style={{ background: "linear-gradient(120deg,var(--primary),var(--primary-2))", color: "#fff", padding: "13px 17px" }}>
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16 }}>💬 ผู้ช่วยแนะแนวเส้นทางการเรียน</div>
+        <div style={{ fontSize: 12, opacity: .9, marginTop: 1 }}>ตอบคำถามและช่วยวางแผนการสะสม/เทียบโอนหน่วยกิต</div>
+      </div>
+
+      {/* บทสนทนา */}
+      <div ref={boxRef} style={{ background: "#F7F4FB", padding: "15px 15px 8px", maxHeight: 460, overflowY: "auto" }}>
+        {msgs.map((m, i) => <Bubble key={i} m={m} />)}
+        {aiBusy && <div style={{ fontSize: 12.5, color: "var(--muted)", paddingLeft: 38 }}>กำลังคิดคำตอบ…</div>}
+      </div>
+
+      {/* ปุ่มตัวเลือก */}
+      <div style={{ padding: "12px 15px 15px", borderTop: "1px solid var(--line)", background: "#fff" }}>
+        {stage === "goal" && (
+          <>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 7 }}>เลือกเป้าหมายของคุณ</div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 11 }}>
+              {Object.entries(PATHWAYS).map(([k, v]) => (
+                <button key={k} className="subbtn" onClick={() => pickGoal(k)}>{v.label}</button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {stage === "level" && (
+          <>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 7 }}>ระดับปัจจุบันของคุณ</div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 11 }}>
+              {TARGETS.map((t) => <button key={t} className="subbtn" onClick={() => pickLevel(t)}>{t}</button>)}
+              <button className="subbtn" onClick={restart} style={{ background: "#F0EAF7" }}>← ย้อนกลับ</button>
+            </div>
+          </>
+        )}
+
+        {stage === "result" && (
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 11 }}>
+            <button className="btn" onClick={restart}>🔄 วางแผนใหม่</button>
+          </div>
+        )}
+
+        {/* คำถามที่พบบ่อย — กดได้ตลอด */}
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>❓ คำถามที่พบบ่อย</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {CHAT_FAQ.map((f) => (
+            <button key={f.q} onClick={() => askFaq(f)} style={{ border: "1.5px solid var(--line)", background: "#fff", color: "var(--primary)", borderRadius: 999, padding: "6px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{f.q}</button>
+          ))}
+        </div>
+
+        {/* ช่องพิมพ์อิสระ — เปิดใช้เมื่อเชื่อม AI แล้ว */}
+        <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px dashed var(--line)" }}>
+          {AI_ENDPOINT ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <input className="field" style={{ marginBottom: 0, flex: 1 }} placeholder="หรือพิมพ์คำถามอิสระ…" value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && askAI()} />
+              <button className="btn" onClick={askAI} disabled={aiBusy}>{aiBusy ? "…" : "ส่ง"}</button>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: "#a99cc0", display: "flex", alignItems: "center", gap: 6 }}>
+              🔧 ช่องพิมพ์คำถามอิสระ (ผู้ช่วย AI) — อยู่ระหว่างพัฒนา จะเปิดใช้งานเมื่อเชื่อมต่อระบบเรียบร้อย
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ── แจ้งความต้องการพัฒนาทักษะ ── */
+function NeedForm({ needs, setNeeds }) {
+  const empty = { who: "นักเรียน", edu: "ม.ต้น", field: "", purpose: "เรียนต่อ", area: "", mode: "ระยะสั้น", exp: "ไม่มี", contactOk: "ใช่", contact: "" };
+  const [f, setF] = useState(empty); const [msg, setMsg] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const submit = async () => {
+    setMsg("");
+    if (!f.field.trim()) return setMsg("⚠ กรุณาระบุสาขาที่ต้องการเรียน");
+    const ok = await setNeeds([...needs, { ...f, id: uid(), field: f.field.trim(), created: new Date().toISOString() }]);
+    if (!ok) return setMsg("⚠ บันทึกไม่สำเร็จ กรุณาลองใหม่");
+    setF(empty); setMsg("✅ ขอบคุณค่ะ ข้อมูลของคุณจะช่วยจังหวัดวางแผนพัฒนาหลักสูตรใหม่");
+  };
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <div className="card">
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16 }}>📝 แจ้งความต้องการพัฒนาทักษะหรือหลักสูตรที่สนใจ</div>
+        <div style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 10px" }}>ข้อมูลนี้ช่วยให้จังหวัดเห็นว่า “ประชาชนอยากเรียนอะไร แต่ระบบยังไม่มีหลักสูตรรองรับ” (จัดเก็บแบบใช้ร่วมกันเพื่อการวิเคราะห์ — โปรดอย่ากรอกข้อมูลส่วนตัวที่ละเอียดอ่อน)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div><label className="lbl">สถานะผู้กรอก</label><select className="field" value={f.who} onChange={set("who")}>{["นักเรียน", "นักศึกษา", "ประชาชน", "ผู้ทำงาน", "ผู้ว่างงาน"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">ระดับการศึกษาปัจจุบัน</label><select className="field" value={f.edu} onChange={set("edu")}>{["ม.ต้น", "ม.ปลาย", "ปวช.", "ปวส.", "ปริญญาตรี", "อื่น ๆ"].map((x) => <option key={x}>{x}</option>)}</select></div>
+        </div>
+        <label className="lbl">สาขาที่ต้องการเรียน *</label>
+        <input className="field" placeholder="เช่น ช่างไฟฟ้า, AI, อาหาร, โรงแรม, เกษตร" value={f.field} onChange={set("field")} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div><label className="lbl">วัตถุประสงค์</label><select className="field" value={f.purpose} onChange={set("purpose")}>{["เรียนต่อ", "เปลี่ยนอาชีพ", "เพิ่มรายได้", "ขอใบรับรอง"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">พื้นที่ที่สะดวกเรียน</label><select className="field" value={f.area} onChange={set("area")}><option value="">เลือกอำเภอ / รูปแบบ</option>{[...DISTRICTS, "ออนไลน์", "ผสมผสาน"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">รูปแบบที่ต้องการ</label><select className="field" value={f.mode} onChange={set("mode")}>{["ระยะสั้น", "รายวิชา", "เสาร์-อาทิตย์", "หลังเลิกงาน"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">ประสบการณ์เดิม</label><select className="field" value={f.exp} onChange={set("exp")}>{["ไม่มี", "มีประสบการณ์ทำงาน", "มีใบรับรอง"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">ยินยอมให้ติดต่อกลับ</label><select className="field" value={f.contactOk} onChange={set("contactOk")}><option>ใช่</option><option>ไม่ใช่</option></select></div>
+          <div><label className="lbl">ช่องทางติดต่อ (ถ้ายินยอม)</label><input className="field" placeholder="เบอร์โทร / อีเมล / ไลน์" value={f.contact} onChange={set("contact")} disabled={f.contactOk === "ไม่ใช่"} /></div>
+        </div>
+        {msg && <div style={{ fontSize: 13.5, marginBottom: 8, color: msg.startsWith("✅") ? "#166534" : "#B3261E" }}>{msg}</div>}
+        <button className="btn" onClick={submit}>ส่งข้อมูลความต้องการ</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── ขอคำปรึกษา ── */
+function ConsultForm({ consults, setConsults }) {
+  const [f, setF] = useState({ name: "", contact: "", q: "" }); const [msg, setMsg] = useState("");
+  const submit = async () => {
+    setMsg("");
+    if (!f.q.trim() || !f.contact.trim()) return setMsg("⚠ กรุณากรอกคำถามและช่องทางติดต่อกลับ");
+    const ok = await setConsults([...consults, { ...f, id: uid(), created: new Date().toISOString(), status: "รอติดต่อกลับ" }]);
+    if (!ok) return setMsg("⚠ บันทึกไม่สำเร็จ กรุณาลองใหม่");
+    setF({ name: "", contact: "", q: "" }); setMsg("✅ รับเรื่องแล้ว เจ้าหน้าที่/สถานศึกษาจะติดต่อกลับตามช่องทางที่ระบุ");
+  };
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div className="card">
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>💬 แบบฟอร์มขอคำปรึกษา</div>
+        <label className="lbl">ชื่อ (จะระบุหรือไม่ก็ได้)</label>
+        <input className="field" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <label className="lbl">ช่องทางติดต่อกลับ *</label>
+        <input className="field" placeholder="เบอร์โทร / อีเมล / ไลน์" value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} />
+        <label className="lbl">คำถาม / เรื่องที่ต้องการปรึกษา *</label>
+        <textarea className="field" rows={4} placeholder="เช่น ลูกเรียน ม.2 สนใจสายช่าง ควรเริ่มสะสมหน่วยกิตอย่างไร" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+        <div style={{ fontSize: 12, color: "#8a93a8", marginBottom: 8 }}>ข้อมูลจัดเก็บในระบบเพื่อให้เจ้าหน้าที่ติดตาม — โปรดกรอกเฉพาะข้อมูลที่จำเป็น</div>
+        {msg && <div style={{ fontSize: 13.5, marginBottom: 8, color: msg.startsWith("✅") ? "#166534" : "#B3261E" }}>{msg}</div>}
+        <button className="btn" onClick={submit}>ส่งคำขอคำปรึกษา</button>
+      </div>
+    </div>
+  );
+}
+
+function Faq() {
+  const items = [
+    ["ธนาคารหน่วยกิต (Credit Bank) คืออะไร", "ระบบที่ให้ผู้เรียนสะสมผลการเรียน ผลการฝึกอบรม หรือประสบการณ์ทำงานเป็น “หน่วยกิต” เก็บไว้ แล้วนำไปเทียบโอนเข้าคุณวุฒิการศึกษาได้ในภายหลัง เรียนก่อน-เก็บไว้-ใช้ทีหลังได้ ไม่มีหมดอายุตามแนวทางของระบบ"],
+    ...MODELS.map((m) => [`รูปแบบที่ ${m.id}: ${m.name}`, `${m.desc} — ตัวอย่างในเชียงใหม่ดูได้จากหน้า “ค้นหาหลักสูตร” โดยกรองรูปแบบที่ ${m.id}`]),
+    ["สถานศึกษาใดขึ้นทะเบียนธนาคารหน่วยกิตอย่างเป็นทางการแล้วบ้าง", "ปี 2569 มีสถานศึกษาที่ได้รับการรับรอง 8 แห่ง — ระดับอาชีวศึกษา (ระบบ สอศ.) 4 แห่ง: วิทยาลัยเทคนิคเชียงใหม่ วิทยาลัยการอาชีพฝาง วิทยาลัยเทคนิคสันกำแพง วิทยาลัยเทคนิคสารภี และระดับอุดมศึกษา (ระบบ อว.) 4 แห่ง: มหาวิทยาลัยเชียงใหม่ มหาวิทยาลัยราชภัฏเชียงใหม่ มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา และมหาวิทยาลัยแม่โจ้ · สถานศึกษาอื่นในระบบมีสถานะ “เครือข่ายขับเคลื่อน (ยังไม่ขึ้นทะเบียน)” ซึ่งดูได้จากป้ายกำกับในหน้าค้นหา"],
+    ["ใครใช้ได้บ้าง", "นักเรียน ม.ต้น/ม.ปลาย ผู้เรียน ปวช./ปวส. และประชาชนทั่วไป รวมถึงผู้ที่ออกจากระบบการศึกษาแต่มีประสบการณ์อาชีพ"],
+    ["เริ่มต้นอย่างไร", "1) ค้นหาหลักสูตรที่สนใจในหน้าค้นหา 2) ติดต่อสถานศึกษาเจ้าของหลักสูตร 3) เรียนและสะสมหน่วยกิต 4) ยื่นเทียบโอนเมื่อเรียนต่อหรือขอคุณวุฒิ — หรือใช้ “ระบบแนะนำเส้นทางการเรียน” ในแท็บวางแผน"],
+    ["ไม่พบหลักสูตรที่อยากเรียน ทำอย่างไร", "กรอกแบบฟอร์ม “แจ้งความต้องการเรียน” ข้อมูลจะถูกรวบรวมให้จังหวัดใช้วางแผนเปิดหลักสูตรใหม่ตามความต้องการจริง"],
+  ];
+  const [open, setOpen] = useState(0);
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      {items.map(([q, a], i) => (
+        <div key={i} className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <button onClick={() => setOpen(open === i ? -1 : i)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "13px 16px", fontSize: 14.5, fontWeight: 700, color: "var(--ink)", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
+            <span>{q}</span><span style={{ color: "var(--gold)" }}>{open === i ? "−" : "+"}</span>
+          </button>
+          {open === i && <div style={{ padding: "0 16px 14px", fontSize: 13.5, lineHeight: 1.7, color: "#3b4a6b" }}>{a}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ════════════ 3) หน่วยงาน (ระยะที่ 1) ════════════ */
+const ROLES = [
+  ["school", "สถานศึกษา — กรอก/แก้ไขหลักสูตรของตนเอง"],
+  ["employer", "สถานประกอบการ/หน่วยงานรัฐ — แจ้งความต้องการกำลังคน"],
+  ["parent", "หน่วยงานต้นสังกัด — ดูข้อมูลสถานศึกษาในสังกัด"],
+  ["admin", "Admin จังหวัด (ศธจ.) — อนุมัติ/จัดการข้อมูลทั้งหมด"],
+];
+const ADMIN_CODE = "CMI-ADMIN"; // รหัสสาธิตสำหรับสมัครสิทธิ์ Admin
+
+function AgencyPortal({ session, setSession, db, setAgencies, setPrograms, setLabor, allPrograms, allLabor }) {
+  if (!session) return <Auth agencies={db.agencies} setAgencies={setAgencies} onLogin={setSession} />;
+  return <Workspace session={session} onLogout={() => setSession(null)} db={db} setAgencies={setAgencies} setPrograms={setPrograms} setLabor={setLabor} allPrograms={allPrograms} allLabor={allLabor} />;
+}
+
+function Auth({ agencies, setAgencies, onLogin }) {
+  const [mode, setMode] = useState("login");
+  const [f, setF] = useState({ role: "school", org: "", affil: "สพฐ.", district: "เมืองเชียงใหม่", contact: "", email: "", pw: "", adminCode: "" });
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const submit = async () => {
+    setErr("");
+    const email = f.email.trim().toLowerCase();
+    if (!email || !f.pw) return setErr("กรุณากรอกอีเมลและรหัสผ่าน");
+    if (mode === "register") {
+      if (!f.org.trim() || !f.contact.trim()) return setErr("กรุณากรอกชื่อหน่วยงานและผู้ประสานงาน");
+      if (f.role === "admin" && f.adminCode !== ADMIN_CODE) return setErr("รหัสยืนยันสิทธิ์ Admin ไม่ถูกต้อง (ระบบสาธิต: CMI-ADMIN)");
+      if (agencies.some((a) => a.email === email)) return setErr("อีเมลนี้ลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ");
+      const org = f.org.trim();
+      const a = { id: uid(), role: f.role, org, affil: f.affil, district: f.district, contact: f.contact.trim(), email, pw: hash(f.pw), created: new Date().toISOString(), regStatus: f.role === "school" ? (isRegProvider(org) ? "ขึ้นทะเบียนแล้ว" : "ยังไม่ขึ้นทะเบียน") : undefined };
+      const ok = await setAgencies([...agencies, a]);
+      if (!ok) return setErr("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      onLogin(a);
+    } else {
+      const a = agencies.find((x) => x.email === email && x.pw === hash(f.pw));
+      if (!a) return setErr("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      onLogin(a);
+    }
+  };
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto" }}>
+      <div className="card">
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <button className={`btn ${mode === "login" ? "" : "ghost"}`} style={{ flex: 1 }} onClick={() => { setMode("login"); setErr(""); }}>เข้าสู่ระบบ</button>
+          <button className={`btn ${mode === "register" ? "" : "ghost"}`} style={{ flex: 1 }} onClick={() => { setMode("register"); setErr(""); }}>ลงทะเบียนหน่วยงาน</button>
+        </div>
+        {mode === "register" && (
+          <>
+            <label className="lbl">ประเภทผู้ใช้งาน / สิทธิ์</label>
+            <select className="field" value={f.role} onChange={set("role")}>{ROLES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
+            {f.role === "admin" && (<><label className="lbl">รหัสยืนยันสิทธิ์ Admin จังหวัด</label><input className="field" value={f.adminCode} onChange={set("adminCode")} placeholder="ระบบสาธิต: CMI-ADMIN" /></>)}
+            <label className="lbl">ชื่อหน่วยงาน / สถานศึกษา / สถานประกอบการ</label>
+            <input className="field" placeholder="เช่น วิทยาลัยเทคนิคเชียงใหม่" value={f.org} onChange={set("org")} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div><label className="lbl">สังกัด</label><select className="field" value={f.affil} onChange={set("affil")}>{AFFILS.map((a) => <option key={a}>{a}</option>)}</select></div>
+              <div><label className="lbl">อำเภอ</label><select className="field" value={f.district} onChange={set("district")}>{DISTRICTS.map((d) => <option key={d}>{d}</option>)}</select></div>
+            </div>
+            <label className="lbl">ชื่อผู้ประสานงาน</label>
+            <input className="field" value={f.contact} onChange={set("contact")} />
+          </>
+        )}
+        <label className="lbl">อีเมล</label>
+        <input className="field" type="email" value={f.email} onChange={set("email")} />
+        <label className="lbl">รหัสผ่าน</label>
+        <input className="field" type="password" value={f.pw} onChange={set("pw")} onKeyDown={(e) => e.key === "Enter" && submit()} />
+        {err && <div style={{ color: "#B3261E", fontSize: 13, marginBottom: 8 }}>⚠ {err}</div>}
+        <button className="btn" style={{ width: "100%" }} onClick={submit}>{mode === "register" ? "ลงทะเบียนและเข้าสู่ระบบ" : "เข้าสู่ระบบ"}</button>
+        <div style={{ fontSize: 11.5, color: "#8a93a8", marginTop: 9, lineHeight: 1.6 }}>
+          ระบบสาธิต: ข้อมูลที่บันทึกจัดเก็บแบบใช้ร่วมกัน (ผู้ใช้แดชบอร์ดนี้ทุกคนมองเห็นได้) — ไม่ควรใช้รหัสผ่านเดียวกับบัญชีจริง
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Workspace({ session, onLogout, db, setAgencies, setPrograms, setLabor, allPrograms, allLabor }) {
+  const role = session.role || "school";
+  const me = db.agencies.find((a) => a.id === session.id) || session;
+  const myReg = isRegProvider(me.org) || me.regStatus === "ขึ้นทะเบียนแล้ว";
+  return (
+    <div>
+      <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 16.5 }}>{session.org}
+            {role === "school" && (myReg
+              ? <Chip color="#3D8B37" filled>✓ ขึ้นทะเบียนธนาคารหน่วยกิตแล้ว</Chip>
+              : <Chip color="#C07F00">⏳ ยังไม่ขึ้นทะเบียน — รอการรับรองจากศูนย์จังหวัด</Chip>)}
+          </div>
+          <div style={{ fontSize: 12.5, color: "#5b6a86" }}>{ROLES.find(([v]) => v === role)?.[1]} · {session.affil} · อ.{session.district} · ผู้ประสานงาน: {session.contact}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn gold" onClick={() => exportCSV(role === "parent" ? allPrograms.filter((p) => p.affil === session.affil) : allPrograms)}>⬇ Export Excel/CSV {role === "parent" ? "(เฉพาะสังกัด)" : "(ทั้งหมด)"}</button>
+          <button className="btn ghost" onClick={onLogout}>ออกจากระบบ</button>
+        </div>
+      </div>
+      {role === "school" && <SchoolWs session={session} customPrograms={db.programs} setPrograms={setPrograms} />}
+      {role === "employer" && <EmployerWs session={session} labor={db.labor} setLabor={setLabor} allLabor={allLabor} />}
+      {role === "parent" && <ParentWs session={session} allPrograms={allPrograms} />}
+      {role === "admin" && <AdminWs db={db} setPrograms={setPrograms} setAgencies={setAgencies} allPrograms={allPrograms} />}
+    </div>
+  );
+}
+
+/* ── สถานศึกษา: กรอกหลักสูตร (ครบฟิลด์ตามสเปก) ── */
+function SchoolWs({ session, customPrograms, setPrograms }) {
+  const empty = { name: "", model: 1, nqf: "ระดับ 2", occ: OCC[0], district: session.district, hours: "", targets: [], fields: "", partners: "", applyUrl: "", year: "2568", status: "ร่าง", applied: "", enrolled: "", credited: "", transferred: "" };
+  const [f, setF] = useState(empty); const [msg, setMsg] = useState("");
+  const mine = customPrograms.filter((p) => p.ownerId === session.id);
+  const toggle = (t) => setF({ ...f, targets: f.targets.includes(t) ? f.targets.filter((x) => x !== t) : [...f.targets, t] });
+  const submit = async () => {
+    setMsg("");
+    if (!f.name.trim()) return setMsg("⚠ กรุณากรอกชื่อหลักสูตร");
+    if (f.targets.length === 0) return setMsg("⚠ กรุณาเลือกกลุ่มเป้าหมาย");
+    const code = `CB-CMI-${String(100 + customPrograms.length + 1)}`;
+    const p = {
+      id: uid(), custom: true, ownerId: session.id, code, provider: session.org, affil: session.affil,
+      name: f.name.trim(), model: Number(f.model), nqf: f.nqf, occ: f.occ, district: f.district, hours: f.hours || "-",
+      targets: f.targets, fields: f.fields, partners: f.partners, applyUrl: f.applyUrl.trim(), year: f.year,
+      status: f.status === "เปิดใช้จริง" || f.status === "มีผู้เรียนแล้ว" ? "รอรับรอง" : f.status, // เปิดใช้จริงต้องผ่าน Admin อนุมัติ
+      learners: L(Number(f.applied) || 0, Number(f.enrolled) || 0, Number(f.credited) || 0, Number(f.transferred) || 0),
+      created: new Date().toISOString(),
+    };
+    const ok = await setPrograms([...customPrograms, p]);
+    if (!ok) return setMsg("⚠ บันทึกไม่สำเร็จ");
+    setF(empty);
+    setMsg("✅ บันทึกแล้ว (สถานะ “เปิดใช้จริง” ต้องผ่านการอนุมัติจาก Admin จังหวัดก่อน)");
+  };
+  const remove = async (id) => setPrograms(customPrograms.filter((p) => p.id !== id));
+  return (
+    <div>
+      <div className="card">
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 15.5, marginBottom: 9 }}>➕ เพิ่มหลักสูตร Credit Bank</div>
+        <label className="lbl">ชื่อหลักสูตร / รายวิชา *</label>
+        <input className="field" placeholder="เช่น ช่างไฟฟ้าเบื้องต้น 40 ชม." value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 9 }}>
+          <div><label className="lbl">รูปแบบ Credit Bank</label><select className="field" value={f.model} onChange={(e) => setF({ ...f, model: e.target.value })}>{MODELS.map((m) => <option key={m.id} value={m.id}>รูปแบบ {m.id} · {m.short}</option>)}</select></div>
+          <div><label className="lbl">ระดับ NQF</label><select className="field" value={f.nqf} onChange={(e) => setF({ ...f, nqf: e.target.value })}>{NQF_LEVELS.map((n) => <option key={n}>{n}</option>)}</select></div>
+          <div><label className="lbl">กลุ่มอาชีพ</label><select className="field" value={f.occ} onChange={(e) => setF({ ...f, occ: e.target.value })}>{OCC.map((o) => <option key={o}>{o}</option>)}</select></div>
+          <div><label className="lbl">อำเภอ</label><select className="field" value={f.district} onChange={(e) => setF({ ...f, district: e.target.value })}>{DISTRICTS.map((d) => <option key={d}>{d}</option>)}</select></div>
+          <div><label className="lbl">จำนวนชั่วโมง / หน่วยกิต</label><input className="field" placeholder="เช่น 40 ชม. / 1 นก." value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
+          <div><label className="lbl">ปีการศึกษา</label><select className="field" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })}>{YEARS.map((y) => <option key={y}>{y}</option>)}</select></div>
+          <div><label className="lbl">สถานะ</label><select className="field" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option>ร่าง</option><option>รอรับรอง</option><option>ปิดปรับปรุง</option></select></div>
+        </div>
+        <label className="lbl">กลุ่มเป้าหมาย (เลือกได้หลายกลุ่ม) *</label>
+        <div style={{ marginBottom: 9 }}>
+          {TARGETS.map((t) => (
+            <button key={t} onClick={() => toggle(t)} className="btn ghost" style={{ marginRight: 6, marginBottom: 6, padding: "5px 13px", background: f.targets.includes(t) ? "var(--primary)" : "#eef2f9", color: f.targets.includes(t) ? "#fff" : "var(--primary)" }}>{t}</button>
+          ))}
+        </div>
+        <label className="lbl">สาขา / รายละเอียดหลักสูตร</label>
+        <textarea className="field" rows={2} value={f.fields} onChange={(e) => setF({ ...f, fields: e.target.value })} />
+        <label className="lbl">คู่ความร่วมมือ / MOU (คั่นด้วยจุลภาค)</label>
+        <input className="field" placeholder="เช่น รร.วัดเวฬุวัน, วิทยาลัยเทคนิคสารภี" value={f.partners} onChange={(e) => setF({ ...f, partners: e.target.value })} />
+        <label className="lbl">ลิงก์สมัคร / หลักสูตรภายนอก (ถ้ามี — Referral Link)</label>
+        <input className="field" placeholder="https://…" value={f.applyUrl} onChange={(e) => setF({ ...f, applyUrl: e.target.value })} />
+        <label className="lbl">ข้อมูลผู้เรียนแบบสรุป (ปี {f.year})</label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 9 }}>
+          {[["applied", "ผู้สมัคร"], ["enrolled", "ผู้เรียนจริง"], ["credited", "ได้รับหน่วยกิต"], ["transferred", "เทียบโอนสำเร็จ"]].map(([k, t]) => (
+            <div key={k}><label className="lbl">{t}</label><input className="field" type="number" min="0" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: "#8a93a8", marginBottom: 8 }}>📎 การแนบเอกสาร (หลักสูตร, MOU, แผนการจัดการเรียนรู้) — ระยะถัดไปเชื่อมที่จัดเก็บไฟล์ของหน่วยงาน; ระหว่างนี้ระบุลิงก์เอกสารในช่องรายละเอียดได้</div>
+        {msg && <div style={{ fontSize: 13.5, marginBottom: 8, color: msg.startsWith("✅") ? "#166534" : "#B3261E" }}>{msg}</div>}
+        <button className="btn" onClick={submit}>บันทึกหลักสูตร</button>
+      </div>
+      <SectionTitle>หลักสูตรของหน่วยงานคุณ ({mine.length})</SectionTitle>
+      {mine.map((p) => (
+        <div key={p.id} style={{ position: "relative" }}>
+          <ProgramCard p={p} />
+          <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6 }}>
+            <Chip color={STATUS_COLOR[p.status]}>{p.status}</Chip>
+            <button onClick={() => remove(p.id)} style={{ border: "none", background: "#fdecec", color: "#B3261E", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ลบ</button>
+          </div>
+        </div>
+      ))}
+      {mine.length === 0 && <div className="card" style={{ color: "#64748b" }}>ยังไม่มีหลักสูตรที่บันทึก — เริ่มจากแบบฟอร์มด้านบน</div>}
+    </div>
+  );
+}
+
+/* ── สถานประกอบการ: ความต้องการกำลังคน ── */
+function EmployerWs({ session, labor, setLabor, allLabor }) {
+  const empty = { biz: "ท่องเที่ยว/บริการ", position: "", occ: OCC[0], skills: "", amount: "", level: "พื้นฐาน", district: session.district, coDev: "ใช่", intern: "ใช่" };
+  const [f, setF] = useState(empty); const [msg, setMsg] = useState("");
+  const mine = labor.filter((l) => l.ownerId === session.id);
+  const submit = async () => {
+    setMsg("");
+    if (!f.position.trim() || !f.amount) return setMsg("⚠ กรุณาระบุตำแหน่งงานและจำนวนที่ต้องการ");
+    const ok = await setLabor([...labor, { ...f, id: uid(), ownerId: session.id, org: session.org, position: f.position.trim(), amount: Number(f.amount), created: new Date().toISOString() }]);
+    if (!ok) return setMsg("⚠ บันทึกไม่สำเร็จ");
+    setF(empty); setMsg("✅ บันทึกแล้ว — ข้อมูลจะปรากฏในกราฟ Demand–Supply บน Dashboard ผู้บริหาร");
+  };
+  return (
+    <div>
+      <div className="card">
+        <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 15.5, marginBottom: 3 }}>🏭 แจ้งความต้องการกำลังคนและทักษะอาชีพ</div>
+        <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 9 }}>ข้อมูลนี้ใช้เปรียบเทียบ Demand ตลาดแรงงาน กับ Supply หลักสูตร Credit Bank เพื่อวางแผนพัฒนาหลักสูตรของจังหวัด</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 9 }}>
+          <div><label className="lbl">ประเภทธุรกิจ</label><select className="field" value={f.biz} onChange={(e) => setF({ ...f, biz: e.target.value })}>{["ท่องเที่ยว/บริการ", "อุตสาหกรรม", "เกษตร", "ดิจิทัล", "สุขภาพ", "พลังงาน", "อื่น ๆ"].map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="lbl">ตำแหน่งงานที่ต้องการ *</label><input className="field" placeholder="เช่น ช่างไฟฟ้า, Barista" value={f.position} onChange={(e) => setF({ ...f, position: e.target.value })} /></div>
+          <div><label className="lbl">กลุ่มอาชีพ (สำหรับจับคู่หลักสูตร)</label><select className="field" value={f.occ} onChange={(e) => setF({ ...f, occ: e.target.value })}>{OCC.map((o) => <option key={o}>{o}</option>)}</select></div>
+          <div><label className="lbl">จำนวนที่ต้องการ (คน/ปี) *</label><input className="field" type="number" min="1" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
+          <div><label className="lbl">ระดับทักษะ</label><select className="field" value={f.level} onChange={(e) => setF({ ...f, level: e.target.value })}><option>พื้นฐาน</option><option>กลาง</option><option>สูง</option></select></div>
+          <div><label className="lbl">พื้นที่ทำงาน</label><select className="field" value={f.district} onChange={(e) => setF({ ...f, district: e.target.value })}>{DISTRICTS.map((d) => <option key={d}>{d}</option>)}</select></div>
+          <div><label className="lbl">ร่วมพัฒนาหลักสูตร</label><select className="field" value={f.coDev} onChange={(e) => setF({ ...f, coDev: e.target.value })}><option>ใช่</option><option>ไม่ใช่</option></select></div>
+          <div><label className="lbl">รับนักเรียนฝึกงาน</label><select className="field" value={f.intern} onChange={(e) => setF({ ...f, intern: e.target.value })}><option>ใช่</option><option>ไม่ใช่</option></select></div>
+        </div>
+        <label className="lbl">ทักษะที่ต้องการ (Hard/Soft Skills)</label>
+        <textarea className="field" rows={2} placeholder="เช่น เดินสายไฟ, ภาษาอังกฤษบริการ, การทำงานเป็นทีม" value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} />
+        {msg && <div style={{ fontSize: 13.5, marginBottom: 8, color: msg.startsWith("✅") ? "#166534" : "#B3261E" }}>{msg}</div>}
+        <button className="btn" onClick={submit}>บันทึกความต้องการกำลังคน</button>
+      </div>
+      <SectionTitle>รายการของหน่วยงานคุณ ({mine.length})</SectionTitle>
+      {mine.map((l) => (
+        <div key={l.id} className="card" style={{ borderLeft: "5px solid #A34262" }}>
+          <b>{l.position}</b> · {l.occ} · <span style={{ color: "#A34262", fontWeight: 700 }}>{num(l.amount)} คน/ปี</span> · ระดับ{l.level} · อ.{l.district}
+          <div style={{ fontSize: 12.5, color: "#5b6a86", marginTop: 3 }}>ทักษะ: {l.skills || "-"} · ร่วมพัฒนาหลักสูตร: {l.coDev} · รับฝึกงาน: {l.intern}</div>
+        </div>
+      ))}
+      {mine.length === 0 && <div className="card" style={{ color: "#64748b" }}>ยังไม่มีรายการ</div>}
+    </div>
+  );
+}
+
+/* ── ต้นสังกัด: ดูข้อมูลในสังกัด ── */
+function ParentWs({ session, allPrograms }) {
+  const rows = allPrograms.filter((p) => p.affil === session.affil);
+  return (
+    <div>
+      <SectionTitle>หลักสูตรของสถานศึกษาในสังกัด {session.affil} ({rows.length})</SectionTitle>
+      {rows.map((p) => (
+        <div key={p.id} style={{ position: "relative" }}>
+          <ProgramCard p={p} />
+          <div style={{ position: "absolute", top: 12, right: 12 }}><Chip color={STATUS_COLOR[p.status]}>{p.status}</Chip></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Admin จังหวัด: อนุมัติ + ดูแบบฟอร์ม ── */
+function AdminWs({ db, setPrograms, setAgencies, allPrograms }) {
+  const [view, setView] = useState("approve");
+  const pending = db.programs.filter((p) => ["ร่าง", "รอรับรอง"].includes(p.status));
+  const schoolAgencies = db.agencies.filter((a) => a.role === "school");
+  const pendingReg = schoolAgencies.filter((a) => !isRegProvider(a.org) && a.regStatus !== "ขึ้นทะเบียนแล้ว");
+  const setStatus = async (id, status) => setPrograms(db.programs.map((p) => (p.id === id ? { ...p, status } : p)));
+  const setReg = async (id, regStatus) => setAgencies(db.agencies.map((a) => (a.id === id ? { ...a, regStatus } : a)));
+  return (
+    <div>
+      <div className="subnav">
+        {[["approve", `✅ อนุมัติหลักสูตร (${pending.length})`], ["register", `🏫 รับรองขึ้นทะเบียนสถานศึกษา (${pendingReg.length})`], ["consults", `💬 คำขอคำปรึกษา (${db.consults.length})`], ["needs", `📝 ความต้องการผู้เรียน (${db.needs.length})`]].map(([k, t]) => (
+          <button key={k} className={`subbtn ${view === k ? "on" : ""}`} onClick={() => setView(k)}>{t}</button>
+        ))}
+      </div>
+      {view === "register" && (
+        <div>
+          <div className="card" style={{ fontSize: 13, color: "#5b6a86" }}>
+            สถานศึกษาที่ขึ้นทะเบียนอย่างเป็นทางการแล้ว {REGISTERED.length} แห่ง (สอศ. 4 · อว. 4) จะได้รับสถานะ “✓ ขึ้นทะเบียนแล้ว” อัตโนมัติ — รายการด้านล่างคือสถานศึกษาที่ลงทะเบียนเข้าใช้ระบบและรอการรับรองขึ้นทะเบียนจากศูนย์ธนาคารหน่วยกิตระดับจังหวัด
+          </div>
+          {schoolAgencies.length === 0 && <div className="card" style={{ color: "#64748b" }}>ยังไม่มีสถานศึกษาลงทะเบียนเข้าใช้ระบบ</div>}
+          {schoolAgencies.map((a) => {
+            const auto = isRegProvider(a.org);
+            const reg = auto || a.regStatus === "ขึ้นทะเบียนแล้ว";
+            return (
+              <div key={a.id} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, borderLeft: `5px solid ${reg ? "#3D8B37" : "#C07F00"}` }}>
+                <div>
+                  <b>{a.org}</b> {reg ? <Chip color="#3D8B37" filled>✓ ขึ้นทะเบียนแล้ว{auto ? " (ทางการ)" : ""}</Chip> : <Chip color="#C07F00">⏳ ยังไม่ขึ้นทะเบียน</Chip>}
+                  <div style={{ fontSize: 12.5, color: "#5b6a86" }}>{a.affil} · อ.{a.district} · ผู้ประสานงาน: {a.contact} ({a.email})</div>
+                </div>
+                {!auto && (reg
+                  ? <button className="btn ghost" style={{ padding: "5px 13px", fontSize: 12.5 }} onClick={() => setReg(a.id, "ยังไม่ขึ้นทะเบียน")}>ยกเลิกการรับรอง</button>
+                  : <button className="btn" style={{ padding: "5px 13px", fontSize: 12.5 }} onClick={() => setReg(a.id, "ขึ้นทะเบียนแล้ว")}>รับรองขึ้นทะเบียน ✓</button>)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {view === "approve" && (
+        <div>
+          {pending.length === 0 && <div className="card" style={{ color: "#64748b" }}>ไม่มีหลักสูตรที่รอการอนุมัติ (หลักสูตรที่หน่วยงานส่งใหม่จะปรากฏที่นี่)</div>}
+          {pending.map((p) => (
+            <div key={p.id} style={{ position: "relative" }}>
+              <ProgramCard p={p} />
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6 }}>
+                <button className="btn" style={{ padding: "4px 12px", fontSize: 12.5 }} onClick={() => setStatus(p.id, "เปิดใช้จริง")}>อนุมัติ → เปิดใช้จริง</button>
+                <button className="btn ghost" style={{ padding: "4px 12px", fontSize: 12.5 }} onClick={() => setStatus(p.id, "ปิดปรับปรุง")}>ส่งกลับปรับปรุง</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {view === "consults" && (
+        <div>
+          {db.consults.length === 0 && <div className="card" style={{ color: "#64748b" }}>ยังไม่มีคำขอคำปรึกษา</div>}
+          {db.consults.map((c) => (
+            <div key={c.id} className="card">
+              <div style={{ fontSize: 13.5 }}><b>{c.name || "ไม่ระบุชื่อ"}</b> · ติดต่อกลับ: {c.contact} · <span style={{ color: "#C07F00" }}>{c.status}</span></div>
+              <div style={{ fontSize: 13.5, marginTop: 4 }}>{c.q}</div>
+              <div style={{ fontSize: 11.5, color: "#8a93a8", marginTop: 3 }}>{new Date(c.created).toLocaleString("th-TH")}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {view === "needs" && (
+        <div>
+          {db.needs.length === 0 && <div className="card" style={{ color: "#64748b" }}>ยังไม่มีข้อมูลความต้องการจากประชาชน</div>}
+          {db.needs.map((n) => (
+            <div key={n.id} className="card" style={{ fontSize: 13.5 }}>
+              <b>{n.field}</b> — {n.who} ({n.edu}) · วัตถุประสงค์: {n.purpose} · พื้นที่: {n.area || "-"} · รูปแบบ: {n.mode} · ประสบการณ์: {n.exp}
+              {n.contactOk === "ใช่" && n.contact && <div style={{ color: "#0E7C7B" }}>ยินยอมให้ติดต่อ: {n.contact}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
