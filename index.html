@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ระบบธนาคารหน่วยกิตจังหวัดเชียงใหม่ | Chiang Mai Credit Bank</title>
 <meta name="description" content="ระบบสารสนเทศกลางธนาคารหน่วยกิตจังหวัดเชียงใหม่ — ทะเบียนหลักสูตร Dashboard ผู้บริหาร และบริการค้นหาหลักสูตรสำหรับประชาชน โดยสำนักงานศึกษาธิการจังหวัดเชียงใหม่" />
-<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 <style>
   html,body{margin:0;padding:0}
   #loading{font-family:'Sarabun',sans-serif;display:grid;place-items:center;height:100vh;color:#5B2A86;gap:12px;text-align:center;padding:20px}
@@ -22,7 +20,7 @@
   function showErr(m){ var el=document.getElementById('err'),ld=document.getElementById('loading'); if(ld)ld.style.display='none'; if(el){el.style.display='block'; el.textContent='⚠ เกิดข้อผิดพลาดในการโหลด:\n\n'+m+'\n\nกรุณาถ่ายภาพหน้าจอนี้ส่งให้ผู้ดูแลระบบ';} }
   window.addEventListener('error', function(e){ showErr((e.message||'')+'\n'+(e.filename||'')+':'+(e.lineno||'')); });
   window.__cbLoaded = false;
-  setTimeout(function(){ if(!window.__cbLoaded) showErr('โหลดไม่สำเร็จภายใน 15 วินาที — อาจเป็นเพราะเชื่อมต่ออินเทอร์เน็ตช้า ลองรีเฟรชหน้าอีกครั้ง'); }, 15000);
+  setTimeout(function(){ if(!window.__cbLoaded) showErr('โหลดไม่สำเร็จภายใน 20 วินาที — อาจเป็นเพราะเชื่อมต่ออินเทอร์เน็ตช้า ลองรีเฟรชหน้าอีกครั้ง'); }, 20000);
 </script>
 <script>
 window.storage = {
@@ -33,6 +31,31 @@ window.storage = {
 };
 </script>
 <script>
+/* โหลด React จาก CDN หลัก ถ้าไม่สำเร็จลอง CDN สำรอง แล้วค่อยรันแอป */
+(function(){
+  var CDNS = [
+    { react: "https://unpkg.com/react@18.2.0/umd/react.production.min.js",
+      dom:   "https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" },
+    { react: "https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js",
+      dom:   "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js" },
+    { react: "https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js",
+      dom:   "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" }
+  ];
+  function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.crossOrigin="anonymous"; s.onload=res; s.onerror=function(){rej(new Error(src));}; document.head.appendChild(s); }); }
+  function tryCDN(i){
+    if (i>=CDNS.length) { showErr('โหลดไลบรารี React ไม่สำเร็จจากทุกแหล่ง — กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วรีเฟรชหน้าอีกครั้ง'); return; }
+    loadScript(CDNS[i].react)
+      .then(function(){ return loadScript(CDNS[i].dom); })
+      .then(function(){ if (window.React && window.ReactDOM) { runApp(); } else { tryCDN(i+1); } })
+      .catch(function(){ tryCDN(i+1); });
+  }
+  window.__runApp_tryCDN = tryCDN;
+  tryCDN(0);
+})();
+</script>
+<script>
+function runApp(){
+  try {
 const {
   useState,
   useEffect,
@@ -1016,6 +1039,143 @@ function App() {
 }
 
 /* ════════════ 1) DASHBOARD ผู้บริหาร ════════════ */
+/* ── สถานศึกษาที่ขึ้นทะเบียนธนาคารหน่วยกิตแล้ว ── */
+function RegisteredSchools() {
+  const [open, setOpen] = useState(null);
+  const voc = REGISTERED.filter(r => r.type.includes("อาชีวศึกษา"));
+  const uni = REGISTERED.filter(r => r.type.includes("อุดมศึกษา"));
+  const Card = ({
+    r,
+    i,
+    color
+  }) => {
+    const isOpen = open === r.name;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        marginBottom: 0,
+        borderTop: `3px solid ${color}`,
+        cursor: r.majors && r.majors.length ? "pointer" : "default"
+      },
+      onClick: () => r.majors && r.majors.length && setOpen(isOpen ? null : r.name)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--display)",
+        fontWeight: 700,
+        fontSize: 15,
+        color: "var(--primary-ink)"
+      }
+    }, r.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--muted)",
+        marginTop: 2
+      }
+    }, "อ.", r.district, " · ", r.type)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#fff",
+        background: color,
+        borderRadius: 99,
+        padding: "3px 10px",
+        whiteSpace: "nowrap"
+      }
+    }, "✓ ขึ้นทะเบียน")), r.nMajor && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "#4a5568",
+        marginTop: 7
+      }
+    }, "เปิดสอน ", r.nMajor, " สาขา ", r.majors && r.majors.length ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        color,
+        fontWeight: 700
+      }
+    }, "· ", isOpen ? "▲ ซ่อน" : "▼ ดูสาขา") : null), r.link && /*#__PURE__*/React.createElement("a", {
+      href: r.link,
+      target: "_blank",
+      rel: "noreferrer",
+      onClick: e => e.stopPropagation(),
+      style: {
+        fontSize: 12.5,
+        color: "#0E7C7B",
+        fontWeight: 700,
+        display: "inline-block",
+        marginTop: 7
+      }
+    }, "↗ ดูหลักสูตรที่เว็บไซต์"), !r.nMajor && !r.link && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#8a8296",
+        marginTop: 7
+      }
+    }, "รอปรับปรุงรายละเอียดสาขา"), isOpen && r.majors && r.majors.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 9,
+        paddingTop: 9,
+        borderTop: "1px solid var(--line)",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6
+      }
+    }, r.majors.map(mj => /*#__PURE__*/React.createElement("span", {
+      key: mj,
+      style: {
+        fontSize: 12,
+        background: "#F3EDFA",
+        color: "var(--primary-ink)",
+        borderRadius: 8,
+        padding: "4px 10px"
+      }
+    }, mj))));
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#2E7D5B",
+      margin: "0 2px 8px"
+    }
+  }, "🔧 ประเภทอาชีวศึกษา (สอศ.) · ", voc.length, " แห่ง"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, voc.map((r, i) => /*#__PURE__*/React.createElement(Card, {
+    key: r.name,
+    r: r,
+    i: i,
+    color: "#2E7D5B"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#5B2A86",
+      margin: "0 2px 8px"
+    }
+  }, "🎓 ระดับอุดมศึกษา (อว.) · ", uni.length, " แห่ง"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
+      gap: 10
+    }
+  }, uni.map((r, i) => /*#__PURE__*/React.createElement(Card, {
+    key: r.name,
+    r: r,
+    i: i,
+    color: "#5B2A86"
+  }))));
+}
 function ExecDashboard({
   programs,
   agencies,
@@ -1114,7 +1274,7 @@ function ExecDashboard({
       color: "#8a8296",
       margin: "8px 2px 0"
     }
-  }, "หมายเหตุ: จำนวนผู้เรียนทุกรายการแสดง ", /*#__PURE__*/React.createElement("b", null, "N/A"), " เนื่องจากยังไม่มีการแจ้งจำนวนผู้เรียนอย่างเป็นทางการ — จะปรับปรุงเมื่อได้รับข้อมูลยืนยันจากสถานศึกษา/หน่วยงาน"), /*#__PURE__*/React.createElement(SectionTitle, null, "การเทียบโอนและสะสมหน่วยกิต 5 รูปแบบ"), /*#__PURE__*/React.createElement("div", {
+  }, "หมายเหตุ: จำนวนผู้เรียนทุกรายการแสดง ", /*#__PURE__*/React.createElement("b", null, "N/A"), " เนื่องจากยังไม่มีการแจ้งจำนวนผู้เรียนอย่างเป็นทางการ — จะปรับปรุงเมื่อได้รับข้อมูลยืนยันจากสถานศึกษา/หน่วยงาน"), /*#__PURE__*/React.createElement(SectionTitle, null, "สถานศึกษาที่ขึ้นทะเบียนธนาคารหน่วยกิตแล้ว (", REGISTERED.length, " แห่ง)"), /*#__PURE__*/React.createElement(RegisteredSchools, null), /*#__PURE__*/React.createElement(SectionTitle, null, "การเทียบโอนและสะสมหน่วยกิต 5 รูปแบบ"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit,minmax(205px,1fr))",
@@ -1261,12 +1421,19 @@ function ModelPage({
   const learners = sumL(programs, "enrolled");
   const hasLearners = hasL(programs, "enrolled");
   const reg = programs.filter(p => p.reg).length;
+  const [detail, setDetail] = useState(null);
   useEffect(() => {
     window.scrollTo(0, 0);
-    const onKey = e => e.key === "Escape" && onBack();
+    const onKey = e => e.key === "Escape" && (detail ? setDetail(null) : onBack());
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onBack]);
+  }, [onBack, detail]);
+
+  // ถ้าเลือกดูรายละเอียดหลักสูตร → เปิดหน้าเต็ม
+  if (detail) return /*#__PURE__*/React.createElement(ProgramDetailPage, {
+    p: detail,
+    onBack: () => setDetail(null)
+  });
   return /*#__PURE__*/React.createElement("div", {
     style: {
       animation: "fadeUp .25s ease"
@@ -1380,7 +1547,8 @@ function ModelPage({
     }
   }, "ยังไม่มีหลักสูตรในรูปแบบนี้"), programs.map(p => /*#__PURE__*/React.createElement(ProgramCard, {
     key: p.id,
-    p: p
+    p: p,
+    onOpen: setDetail
   })), /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
     className: "btn ghost",
@@ -2138,14 +2306,27 @@ function PublicPortal({
   }), sub === "faq" && /*#__PURE__*/React.createElement(Faq, null));
 }
 function ProgramCard({
-  p
+  p,
+  onOpen
 }) {
   const m = MODELS[p.model - 1];
+  const clickable = !!onOpen;
   return /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
-      borderLeft: `5px solid ${m.color}`
-    }
+      borderLeft: `5px solid ${m.color}`,
+      cursor: clickable ? "pointer" : "default",
+      transition: "box-shadow .15s, transform .15s"
+    },
+    onClick: clickable ? () => onOpen(p) : undefined,
+    onMouseEnter: clickable ? e => {
+      e.currentTarget.style.boxShadow = `0 6px 20px ${m.color}33`;
+      e.currentTarget.style.transform = "translateY(-2px)";
+    } : undefined,
+    onMouseLeave: clickable ? e => {
+      e.currentTarget.style.boxShadow = "";
+      e.currentTarget.style.transform = "";
+    } : undefined
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -2224,7 +2405,13 @@ function ProgramCard({
       gap: 6,
       marginTop: 8
     }
-  }, p.applyUrl ? /*#__PURE__*/React.createElement("a", {
+  }, clickable ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: m.color
+    }
+  }, "👆 แตะเพื่อดูรายละเอียด (รายวิชา · ผู้เรียน · คู่ความร่วมมือ) →") : p.applyUrl ? /*#__PURE__*/React.createElement("a", {
     href: p.applyUrl,
     target: "_blank",
     rel: "noreferrer",
@@ -2245,6 +2432,301 @@ function ProgramCard({
     }
   }, "อัปเดต ", UPDATED_AT)));
 }
+
+/* ── หน้าเต็ม: รายละเอียดหลักสูตร (รายวิชา · ผู้เรียน · คู่ความร่วมมือ) ── */
+function ProgramDetailPage({
+  p,
+  onBack
+}) {
+  const m = MODELS[p.model - 1];
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const onKey = e => e.key === "Escape" && onBack();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onBack]);
+  const courses = p.courses || [];
+  const enrollments = p.enrollments || [];
+  const partnersArr = Array.isArray(p.partners) ? p.partners : p.partners && p.partners !== "-" ? p.partners.split(",").map(x => ({
+    name: x.trim()
+  })).filter(x => x.name) : [];
+  const Section = ({
+    icon,
+    title,
+    count,
+    children
+  }) => /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontWeight: 700,
+      fontSize: 15.5,
+      color: "var(--primary-ink)",
+      marginBottom: 10
+    }
+  }, icon, " ", title, count != null && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--muted)",
+      fontWeight: 400
+    }
+  }, " (", count, ")")), children);
+  const Empty = ({
+    text
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#8a8296",
+      padding: "4px 2px"
+    }
+  }, text);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "fadeUp .25s ease"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    className: "btn ghost",
+    style: {
+      marginBottom: 14,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, "← กลับ"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `linear-gradient(140deg,${m.color},${m.color}D0)`,
+      color: "#fff",
+      padding: "22px",
+      borderRadius: 18,
+      position: "relative",
+      overflow: "hidden",
+      boxShadow: `0 6px 22px ${m.color}40`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      right: -14,
+      top: -30,
+      fontSize: 150,
+      fontWeight: 800,
+      opacity: .12,
+      fontFamily: "var(--display)"
+    }
+  }, m.id), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-block",
+      fontSize: 12,
+      fontWeight: 700,
+      background: "rgba(255,255,255,.22)",
+      padding: "3px 12px",
+      borderRadius: 99
+    }
+  }, "รูปแบบที่ ", m.id, " · ", m.short), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      opacity: .9
+    }
+  }, p.code)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontWeight: 700,
+      fontSize: 22,
+      margin: "10px 0 6px",
+      lineHeight: 1.25
+    }
+  }, p.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      opacity: .96
+    }
+  }, p.provider, " · อ.", p.district, " · ", p.affil), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginTop: 14,
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,.24)",
+      borderRadius: 99,
+      padding: "5px 14px"
+    }
+  }, "NQF ", p.nqf), p.hours && p.hours !== "ไม่มีข้อมูล" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,.24)",
+      borderRadius: 99,
+      padding: "5px 14px"
+    }
+  }, p.hours), p.credits && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,.24)",
+      borderRadius: 99,
+      padding: "5px 14px"
+    }
+  }, p.credits, " หน่วยกิต"), p.year && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,.24)",
+      borderRadius: 99,
+      padding: "5px 14px"
+    }
+  }, "ปีการศึกษา ", p.year), /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: p.reg ? "rgba(125,211,160,.4)" : "rgba(255,255,255,.24)",
+      borderRadius: 99,
+      padding: "5px 14px"
+    }
+  }, p.reg ? "✓ ขึ้นทะเบียนแล้ว" : "⏳ ยังไม่ขึ้นทะเบียน"))), /*#__PURE__*/React.createElement(Section, {
+    icon: "📋",
+    title: "ข้อมูลหลักสูตร"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 8
+    }
+  }, (p.targets || []).map(t => /*#__PURE__*/React.createElement(Chip, {
+    key: t,
+    color: "#6b7280"
+  }, t)), p.occ && /*#__PURE__*/React.createElement(Chip, {
+    color: "#0E7C7B"
+  }, p.occ)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      lineHeight: 1.7
+    }
+  }, p.fields || /*#__PURE__*/React.createElement(Empty, {
+    text: "ไม่มีรายละเอียดเพิ่มเติม"
+  }))), /*#__PURE__*/React.createElement(Section, {
+    icon: "📖",
+    title: "รายวิชาในหลักสูตร",
+    count: courses.length
+  }, courses.length === 0 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "ยังไม่มีข้อมูลรายวิชา — สถานศึกษาสามารถเพิ่มรายวิชาได้ผ่านระบบสำหรับหน่วยงาน"
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "reg"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "รหัสวิชา"), /*#__PURE__*/React.createElement("th", null, "ชื่อรายวิชา"), /*#__PURE__*/React.createElement("th", null, "นก."), /*#__PURE__*/React.createElement("th", null, "ชม."), /*#__PURE__*/React.createElement("th", null, "ภาค"), /*#__PURE__*/React.createElement("th", null, "ระดับ"), /*#__PURE__*/React.createElement("th", null, "เทียบโอนกับ"))), /*#__PURE__*/React.createElement("tbody", null, courses.map((c, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, c.code || "-"), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("b", null, c.name)), /*#__PURE__*/React.createElement("td", null, c.credits || "-"), /*#__PURE__*/React.createElement("td", null, c.hours || "-"), /*#__PURE__*/React.createElement("td", null, c.semester || "-"), /*#__PURE__*/React.createElement("td", null, c.level || "-"), /*#__PURE__*/React.createElement("td", null, c.transferTo || "-"))))))), /*#__PURE__*/React.createElement(Section, {
+    icon: "🧑‍🎓",
+    title: "ข้อมูลผู้เรียนรายปี",
+    count: enrollments.length
+  }, enrollments.length === 0 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "ยังไม่มีข้อมูลผู้เรียน — จะแสดงเมื่อสถานศึกษาบันทึกยอดผู้สมัคร/ผู้จบในแต่ละปีการศึกษา"
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "reg"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "ปีการศึกษา"), /*#__PURE__*/React.createElement("th", null, "ภาค"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "ผู้สมัคร"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "เข้าเรียนจริง"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "ผู้จบ"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "ได้ นก."), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "เทียบโอน"))), /*#__PURE__*/React.createElement("tbody", null, enrollments.map((e, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("b", null, e.year)), /*#__PURE__*/React.createElement("td", null, e.semester || "ทั้งปี"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      textAlign: "right"
+    }
+  }, e.applied || 0), /*#__PURE__*/React.createElement("td", {
+    style: {
+      textAlign: "right"
+    }
+  }, e.enrolled || 0), /*#__PURE__*/React.createElement("td", {
+    style: {
+      textAlign: "right"
+    }
+  }, e.completed || 0), /*#__PURE__*/React.createElement("td", {
+    style: {
+      textAlign: "right"
+    }
+  }, e.credited || 0), /*#__PURE__*/React.createElement("td", {
+    style: {
+      textAlign: "right"
+    }
+  }, e.transferred || 0))))))), /*#__PURE__*/React.createElement(Section, {
+    icon: "🤝",
+    title: "คู่ความร่วมมือ / เครือข่าย",
+    count: partnersArr.length
+  }, partnersArr.length === 0 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "ยังไม่มีข้อมูลคู่ความร่วมมือ"
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 7
+    }
+  }, partnersArr.map((pt, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      fontSize: 13,
+      background: "#F3EDFA",
+      color: "var(--primary-ink)",
+      borderRadius: 10,
+      padding: "7px 13px"
+    }
+  }, "🏫 ", pt.name, pt.type ? ` · ${pt.type}` : "", pt.mouDate ? ` (MOU ${pt.mouDate})` : "")))), p.applyUrl && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 12,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: p.applyUrl,
+    target: "_blank",
+    rel: "noreferrer",
+    className: "btn",
+    style: {
+      textDecoration: "none",
+      display: "inline-block"
+    }
+  }, "↗ สมัคร/ดูรายละเอียดที่หน่วยงานเจ้าของหลักสูตร")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#a99cc0",
+      textAlign: "right",
+      margin: "10px 4px 0"
+    }
+  }, "อัปเดต ", UPDATED_AT), /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    className: "btn ghost",
+    style: {
+      marginTop: 12
+    }
+  }, "← กลับ"));
+}
 function PublicSearch({
   programs
 }) {
@@ -2254,6 +2736,17 @@ function PublicSearch({
   const [model, setModel] = useState(0);
   const [target, setTarget] = useState("");
   const [reg, setReg] = useState("");
+  const [detail, setDetail] = useState(null);
+  useEffect(() => {
+    if (!detail) return;
+    const onKey = e => e.key === "Escape" && setDetail(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [detail]);
+  if (detail) return /*#__PURE__*/React.createElement(ProgramDetailPage, {
+    p: detail,
+    onBack: () => setDetail(null)
+  });
   const rows = programs.filter(p => {
     if (reg === "reg" && !p.reg) return false;
     if (reg === "unreg" && p.reg) return false;
@@ -2364,7 +2857,8 @@ function PublicSearch({
     onClick: () => exportCSV(rows, "รายชื่อหลักสูตร-credit-bank.csv")
   }, "⬇ ดาวน์โหลดรายชื่อหลักสูตร"))), rows.map(p => /*#__PURE__*/React.createElement(ProgramCard, {
     key: p.id,
-    p: p
+    p: p,
+    onOpen: setDetail
   })), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
@@ -2777,6 +3271,36 @@ function Planner({
 }
 
 /* ── แจ้งความต้องการพัฒนาทักษะ ── */
+/* ── ส่งข้อมูลเข้า Apps Script ผ่าน JSONP (เลี่ยง CORS) ── */
+function jsonpSubmit(params) {
+  return new Promise((resolve, reject) => {
+    if (!API_URL) return reject(new Error("no-api"));
+    const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("timeout"));
+    }, 12000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = res => {
+      cleanup();
+      resolve(res);
+    };
+    const qs = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k] || "")).join("&");
+    const script = document.createElement("script");
+    script.src = API_URL + "?api=need&callback=" + cbName + "&" + qs;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("network"));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+/* ── แจ้งความต้องการพัฒนาทักษะ ── */
 function NeedForm({
   needs,
   setNeeds
@@ -2794,6 +3318,7 @@ function NeedForm({
   };
   const [f, setF] = useState(empty);
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const set = k => e => setF({
     ...f,
     [k]: e.target.value
@@ -2801,15 +3326,34 @@ function NeedForm({
   const submit = async () => {
     setMsg("");
     if (!f.field.trim()) return setMsg("⚠ กรุณาระบุสาขาที่ต้องการเรียน");
-    const ok = await setNeeds([...needs, {
+    setBusy(true);
+    const payload = {
       ...f,
-      id: uid(),
-      field: f.field.trim(),
-      created: new Date().toISOString()
-    }]);
-    if (!ok) return setMsg("⚠ บันทึกไม่สำเร็จ กรุณาลองใหม่");
-    setF(empty);
-    setMsg("✅ ขอบคุณค่ะ ข้อมูลของคุณจะช่วยจังหวัดวางแผนพัฒนาหลักสูตรใหม่");
+      field: f.field.trim()
+    };
+    try {
+      if (API_URL) {
+        // ส่งเข้า Google Sheet จริงผ่าน Apps Script
+        const res = await jsonpSubmit(payload);
+        if (!res || !res.ok) throw new Error(res && res.msg || "ส่งไม่สำเร็จ");
+        setF(empty);
+        setMsg("✅ ขอบคุณค่ะ ข้อมูลของคุณถูกส่งเข้าระบบของ ศธจ.เชียงใหม่แล้ว และจะช่วยวางแผนพัฒนาหลักสูตรใหม่");
+      } else {
+        // สำรอง: เก็บในเครื่อง (กรณียังไม่เชื่อม Apps Script)
+        const ok = await setNeeds([...needs, {
+          ...payload,
+          id: uid(),
+          created: new Date().toISOString()
+        }]);
+        if (!ok) throw new Error("บันทึกไม่สำเร็จ");
+        setF(empty);
+        setMsg("✅ ขอบคุณค่ะ ข้อมูลของคุณจะช่วยจังหวัดวางแผนพัฒนาหลักสูตรใหม่");
+      }
+    } catch (e) {
+      setMsg("⚠ ส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+    } finally {
+      setBusy(false);
+    }
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2830,7 +3374,7 @@ function NeedForm({
       color: "#64748b",
       margin: "3px 0 10px"
     }
-  }, "ข้อมูลนี้ช่วยให้จังหวัดเห็นว่า “ประชาชนอยากเรียนอะไร แต่ระบบยังไม่มีหลักสูตรรองรับ” (จัดเก็บแบบใช้ร่วมกันเพื่อการวิเคราะห์ — โปรดอย่ากรอกข้อมูลส่วนตัวที่ละเอียดอ่อน)"), /*#__PURE__*/React.createElement("div", {
+  }, "ข้อมูลนี้ช่วยให้จังหวัดเห็นว่า “ประชาชนอยากเรียนอะไร แต่ระบบยังไม่มีหลักสูตรรองรับ” (โปรดอย่ากรอกข้อมูลส่วนตัวที่ละเอียดอ่อน)"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -2921,8 +3465,9 @@ function NeedForm({
     }
   }, msg), /*#__PURE__*/React.createElement("button", {
     className: "btn",
-    onClick: submit
-  }, "ส่งข้อมูลความต้องการ")));
+    onClick: submit,
+    disabled: busy
+  }, busy ? "กำลังส่ง…" : "ส่งข้อมูลความต้องการ")));
 }
 
 /* ── ขอคำปรึกษา ── */
@@ -3973,8 +4518,10 @@ function AdminWs({
     }
   }, "ยินยอมให้ติดต่อ: ", n.contact)))));
 }
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-window.__cbLoaded = true;
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+    window.__cbLoaded = true;
+  } catch(e){ showErr(String(e && e.message || e)); }
+}
 </script>
 </body>
 </html>
